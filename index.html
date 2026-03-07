@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Z-TRONIK - Cek Poin Member</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#064e3b"> 
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+
+    <style>
+        body { font-family: 'Poppins', sans-serif; background-color: #064e3b; }
+        .pattern-bg { background-color: #ffffff; background-image: radial-gradient(#e5e7eb 1.5px, transparent 1.5px); background-size: 20px 20px; }
+        #reader video { border-radius: 0.75rem; object-fit: cover; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+    <div class="pattern-bg w-full max-w-md rounded-[2rem] p-6 sm:p-8 shadow-2xl relative text-center">
+        
+        <div class="flex flex-col items-center mb-6 mt-4">
+            <h1 class="text-4xl sm:text-[2.5rem] font-extrabold text-slate-800 tracking-[0.15em] drop-shadow-sm mb-1">Z-TRONIK</h1>
+            <p class="text-[10px] text-emerald-600 font-bold mt-1 uppercase tracking-widest">Sistem Pengecekan Poin Member</p>
+        </div>
+        <hr class="border-slate-100 mb-6">
+
+        <div id="tab-container" class="bg-slate-50 p-1.5 rounded-2xl grid grid-cols-2 gap-1 items-center mb-6 border border-slate-100 relative transition-all duration-300">
+            <button id="tab-member" class="w-full bg-emerald-500 text-white py-2 rounded-xl text-xs font-semibold shadow-sm transition flex flex-col justify-center items-center gap-1" onclick="switchTab('member')"><i class="fa-solid fa-id-card text-lg"></i> Cek Poin</button>
+            <button id="tab-kartu" class="w-full text-slate-400 py-2 rounded-xl text-xs font-medium hover:text-slate-600 transition flex flex-col justify-center items-center gap-1" onclick="switchTab('kartu')"><i class="fa-solid fa-download text-lg"></i> Unduh Kartu</button>
+        </div>
+
+        <div id="form-kartu" class="" style="display:none;">
+            <p class="text-sm text-slate-500 mb-3">Unduh Kartu Digital Anda</p>
+            <div class="relative mb-6">
+                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-emerald-500"><i class="fa-solid fa-id-card"></i></div>
+                <input type="text" id="input-cetak-id" placeholder="ID Member / No HP..." class="w-full pl-11 pr-4 py-4 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-emerald-500 font-bold uppercase text-slate-700 tracking-wider">
+            </div>
+            <button id="btn-cetak" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-4 rounded-xl font-bold text-sm shadow-lg transition active:scale-95 flex justify-center items-center gap-2" onclick="prosesUnduhKartu()"><i class="fa-solid fa-download"></i> PROSES & UNDUH KARTU</button>
+            
+            <canvas id="canvas-kartu" width="850" height="550" style="display:none;"></canvas>
+        </div>
+
+        <div id="form-member" class="" style="display:block;">
+            <p class="text-sm text-slate-500 mb-3">Cek poin atau scan kartu anda</p>
+            
+            <div id="container-reader" class="hidden relative mb-4">
+                <button onclick="stopScanner('reader')" class="absolute top-2 right-2 z-10 bg-rose-500 text-white w-8 h-8 rounded-full flex items-center justify-center shadow border-2 border-white transition active:scale-90"><i class="fa-solid fa-xmark"></i></button>
+                <div id="reader" class="w-full overflow-hidden border-2 border-emerald-200 rounded-xl"></div>
+            </div>
+
+            <div class="relative mb-6">
+                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-emerald-500"><i class="fa-solid fa-id-card"></i></div>
+                <input type="text" id="input-member-id" placeholder="ID Member / No HP..." class="w-full pl-11 pr-4 py-4 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-emerald-500 font-bold uppercase text-slate-700 tracking-wider">
+            </div>
+            <div class="flex flex-col gap-3">
+                <button id="btn-scan" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-4 rounded-xl font-bold text-sm shadow-lg transition active:scale-95 flex justify-center items-center gap-2" onclick="startScanner()"><i class="fa-solid fa-camera"></i> SCAN QR KARTU</button>
+                <button class="w-full bg-slate-100 hover:bg-slate-200 text-emerald-600 py-4 rounded-xl font-bold text-sm transition active:scale-95" onclick="cekKartu()">LIHAT POIN SAYA</button>
+            </div>
+        </div>
+
+        <div class="mt-8 text-center">
+            <p class="text-[10px] text-slate-400 font-medium tracking-widest uppercase">
+                &copy; 2026 <span class="text-emerald-600 font-bold ml-1">Z-TRONIK</span>
+            </p>
+            <p class="text-[8px] text-slate-300 mt-1 uppercase tracking-wider">All rights reserved.</p>
+        </div>
+    </div>
+
+    <div id="modal-result" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm hidden justify-center items-center z-50 px-4 transition-opacity duration-300" style="display:none;">
+        <div class="bg-white w-full max-w-sm rounded-[2.5rem] p-6 text-center shadow-2xl transform scale-95 transition-transform duration-300 max-h-[95vh] overflow-y-auto" id="modal-content">
+            <div class="mx-auto mb-4 bg-white p-2 rounded-2xl border-2 border-emerald-100 inline-block shadow-sm">
+                <img id="modal-qr" src="" class="w-28 h-28">
+            </div>
+            <h3 class="text-xl font-bold text-slate-800" id="modal-name">Nama Member</h3>
+            <p class="text-slate-400 text-[10px] mb-2 font-bold uppercase tracking-widest">ID: <span id="modal-id" class="text-slate-700"></span></p>
+            <div class="flex flex-col gap-1 mb-5">
+                <p class="text-slate-500 text-[11px] font-medium flex items-center justify-center gap-1">
+                    <i class="fa-solid fa-phone text-emerald-500"></i> <span id="modal-hp"></span>
+                </p>
+                <p class="text-slate-500 text-[11px] font-medium flex items-center justify-center gap-1 px-4">
+                    <i class="fa-solid fa-location-dot text-emerald-500"></i> <span id="modal-alamat" class="italic"></span>
+                </p>
+            </div>
+            <div class="bg-emerald-50 rounded-[2rem] p-5 mb-6 border border-emerald-100 shadow-inner">
+                <p class="text-[10px] text-emerald-600 font-bold mb-1 uppercase tracking-[0.2em]">Total Poin</p>
+                <p class="text-5xl font-bold text-emerald-600 tracking-tighter" id="modal-poin">0</p>
+            </div>
+            <div class="text-left mb-6 px-1">
+                <h4 class="text-[10px] font-bold text-slate-400 mb-2 uppercase border-b border-slate-100 pb-1 tracking-wider"><i class="fa-solid fa-clock-rotate-left mr-1"></i> Histori 10 Transaksi</h4>
+                <ul id="modal-riwayat" class="space-y-2"></ul>
+            </div>
+            <button onclick="tutupModal()" class="w-full bg-slate-800 text-white py-4 rounded-2xl font-bold text-sm shadow-xl active:scale-95 transition">TUTUP</button>
+        </div>
+    </div>
+
+    <script>
+        // GANTI URL DI BAWAH INI DENGAN URL DEPLOYMENT APP SCRIPT ANDA
+        const URL_DATABASE = "https://script.google.com/macros/s/AKfycbyv7kMUMyU2zq8rvnzac-YTvVNNzMuLQieiHwEK9H_vaXtVMS3t_ptE4Rab8EHAtqgx/exec";
+        const HEADERS_POST = { 'Content-Type': 'text/plain;charset=utf-8' };
+
+        let html5QrCode;
+        let memberCache = [];
+        let memberCacheLoaded = false;
+        let memberCacheLoading = false;
+
+        async function loadMemberCache(forceRefresh = false) {
+            if (memberCacheLoaded && !forceRefresh) return;
+            if (memberCacheLoading) return;
+            memberCacheLoading = true;
+            try {
+                const res = await fetch(URL_DATABASE, { method: 'POST', headers: HEADERS_POST, redirect: 'follow', body: JSON.stringify({ action: 'get_all_members' }) });
+                const r = await res.json();
+                if (r.status === 'success') {
+                    memberCache = r.members;
+                    memberCacheLoaded = true;
+                }
+            } catch(e) { console.log("Gagal load cache member:", e); }
+            finally { memberCacheLoading = false; }
+        }
+
+        function cariMemberDariCache(id) {
+            const q = id.toString().trim().toUpperCase();
+            return memberCache.find(m => 
+                m.id.toString().toUpperCase() === q || 
+                m.hp.toString().replace(/\D/g,'') === q.replace(/\D/g,'')
+            );
+        }
+
+        function stopScanner(type) {
+            document.getElementById(`container-${type}`).classList.add('hidden');
+            try {
+                if (type === 'reader' && html5QrCode) {
+                    html5QrCode.stop().catch(e => console.log(e));
+                }
+            } catch (e) { console.log(e); }
+        }
+
+        function switchTab(tab) {
+            if(document.getElementById('input-member-id')) document.getElementById('input-member-id').value = '';
+            if(document.getElementById('input-cetak-id')) document.getElementById('input-cetak-id').value = '';
+            stopScanner('reader');
+
+            document.getElementById('form-member').style.display = (tab === 'member') ? 'block' : 'none';
+            document.getElementById('form-kartu').style.display = (tab === 'kartu') ? 'block' : 'none';
+
+            if (!memberCacheLoaded && !memberCacheLoading) loadMemberCache();
+
+            const tabs = ['member', 'kartu'];
+            tabs.forEach(t => {
+                const btn = document.getElementById(`tab-${t}`);
+                if (t === tab) {
+                    btn.className = "w-full bg-emerald-500 text-white py-2 rounded-xl text-xs font-semibold shadow-sm transition flex flex-col justify-center items-center gap-1";
+                } else {
+                    btn.className = "w-full text-slate-400 py-2 rounded-xl text-xs font-medium hover:text-slate-600 transition flex flex-col justify-center items-center gap-1";
+                }
+            });
+        }
+
+        function startScanner() {
+            document.getElementById('container-reader').classList.remove('hidden');
+            html5QrCode = new Html5Qrcode("reader");
+            html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (t) => {
+                document.getElementById('input-member-id').value = t;
+                stopScanner('reader');
+            }).catch(e => { alert("Kamera error/tidak diizinkan"); document.getElementById('container-reader').classList.add('hidden'); });
+        }
+
+        async function cekKartu() {
+            const id = document.getElementById('input-member-id').value.trim();
+            if(!id) return alert("Isi ID atau No HP!");
+
+            const rl = document.getElementById('modal-riwayat');
+
+            const cached = cariMemberDariCache(id);
+            if (cached) {
+                document.getElementById('modal-qr').src = `https://api.qrserver.com/v1/create-qr-code/?data=${cached.id}`;
+                document.getElementById('modal-name').innerText = cached.nama;
+                document.getElementById('modal-id').innerText = cached.id;
+                document.getElementById('modal-poin').innerText = cached.poin;
+                document.getElementById('modal-hp').innerText = cached.hp || "-";
+                document.getElementById('modal-alamat').innerText = cached.alamat || "-";
+                rl.innerHTML = '<li class="p-3 text-[11px] text-center text-slate-400 italic"><i class="fa-solid fa-spinner fa-spin mr-1"></i> Memuat riwayat...</li>';
+                document.getElementById('modal-result').style.display = 'flex';
+                setTimeout(() => document.getElementById('modal-content').classList.replace('scale-95', 'scale-100'), 10);
+
+                try {
+                    const res = await fetch(`${URL_DATABASE}?id=${cached.id}`);
+                    const r = await res.json();
+                    if(r.status === 'success') {
+                        rl.innerHTML = '';
+                        if(r.riwayat && r.riwayat.length > 0) {
+                            r.riwayat.forEach(row => {
+                                const c = row.aksi === 'tambah' ? 'text-emerald-500' : 'text-rose-500';
+                                rl.innerHTML += `<li class="flex justify-between text-[11px] p-2 bg-slate-50 rounded-xl border border-slate-100"><div><b>${row.item}</b><br><small class="text-slate-400">${row.tanggal}</small></div><span class="font-bold ${c}">${row.aksi==='tambah'?'+':'-'}${row.poin}</span></li>`;
+                            });
+                        } else {
+                            rl.innerHTML = '<li class="p-3 text-[11px] text-center text-slate-400 italic">Belum ada riwayat transaksi.</li>';
+                        }
+                    }
+                } catch(e) { rl.innerHTML = '<li class="p-3 text-[11px] text-center text-rose-400 italic">Gagal memuat riwayat.</li>'; }
+                return;
+            }
+
+            try {
+                const res = await fetch(`${URL_DATABASE}?id=${id}`);
+                const r = await res.json();
+                if(r.status === 'success') {
+                    document.getElementById('modal-qr').src = `https://api.qrserver.com/v1/create-qr-code/?data=${r.id_asli}`;
+                    document.getElementById('modal-name').innerText = r.nama;
+                    document.getElementById('modal-id').innerText = r.id_asli;
+                    document.getElementById('modal-poin').innerText = r.poin;
+                    document.getElementById('modal-hp').innerText = r.hp || "-";
+                    document.getElementById('modal-alamat').innerText = r.alamat || "-";
+                    rl.innerHTML = '';
+                    r.riwayat.forEach(row => {
+                        const c = row.aksi === 'tambah' ? 'text-emerald-500' : 'text-rose-500';
+                        rl.innerHTML += `<li class="flex justify-between text-[11px] p-2 bg-slate-50 rounded-xl border border-slate-100"><div><b>${row.item}</b><br><small class="text-slate-400">${row.tanggal}</small></div><span class="font-bold ${c}">${row.aksi==='tambah'?'+':'-'}${row.poin}</span></li>`;
+                    });
+                    document.getElementById('modal-result').style.display = 'flex';
+                    setTimeout(() => document.getElementById('modal-content').classList.replace('scale-95', 'scale-100'), 10);
+                } else alert("Member tidak ditemukan!");
+            } catch(e) { alert("Error koneksi. Coba lagi."); }
+        }
+
+        function tutupModal() {
+            document.getElementById('modal-content').classList.replace('scale-100', 'scale-95');
+            setTimeout(() => { document.getElementById('modal-result').style.display = 'none'; }, 200);
+        }
+
+        async function prosesUnduhKartu() {
+            const id = document.getElementById('input-cetak-id').value;
+            if(!id) return alert("Isi ID Member atau No HP terlebih dahulu!");
+            
+            const btn = document.getElementById('btn-cetak');
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> MENCARI DATA...';
+            btn.disabled = true;
+
+            const cached = cariMemberDariCache(id);
+            if (cached) {
+                btn.innerHTML = '<i class="fa-solid fa-palette"></i> MENGGAMBAR KARTU...';
+                buatDanUnduhCanvas(cached.nama, cached.id, cached.alamat || "-");
+                return;
+            }
+
+            try {
+                const res = await fetch(`${URL_DATABASE}?id=${id}`);
+                const r = await res.json();
+                if(r.status === 'success') {
+                    btn.innerHTML = '<i class="fa-solid fa-palette"></i> MENGGAMBAR KARTU...';
+                    buatDanUnduhCanvas(r.nama, r.id_asli, r.alamat || "-");
+                } else {
+                    alert("Member tidak ditemukan!");
+                    btn.innerHTML = '<i class="fa-solid fa-download"></i> PROSES & UNDUH KARTU';
+                    btn.disabled = false;
+                }
+            } catch(e) { 
+                alert("Terjadi kesalahan jaringan."); 
+                btn.innerHTML = '<i class="fa-solid fa-download"></i> PROSES & UNDUH KARTU';
+                btn.disabled = false;
+            }
+        }
+
+        function buatDanUnduhCanvas(nama, idAsli, alamat) {
+            const canvas = document.getElementById('canvas-kartu');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, 850, 550);
+            ctx.save(); 
+            ctx.beginPath();
+            ctx.roundRect(0, 0, 850, 550, 35); 
+            ctx.clip(); 
+            const grd = ctx.createLinearGradient(0, 0, 850, 550);
+            grd.addColorStop(0, "#022c22"); 
+            grd.addColorStop(1, "#059669"); 
+            ctx.fillStyle = grd;
+            ctx.fillRect(0, 0, 850, 550);
+            ctx.fillStyle = "rgba(16, 185, 129, 0.2)"; 
+            ctx.beginPath();
+            ctx.moveTo(400, 0);
+            ctx.lineTo(850, 0);
+            ctx.lineTo(850, 300);
+            ctx.fill();
+            ctx.fillStyle = "rgba(4, 120, 87, 0.4)"; 
+            ctx.beginPath();
+            ctx.arc(0, 550, 250, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.moveTo(0, 120);
+            ctx.lineTo(850, 120);
+            ctx.strokeStyle = "rgba(251, 191, 36, 0.8)"; 
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.shadowColor = "rgba(0, 0, 0, 0.3)";
+            ctx.shadowBlur = 4;
+            ctx.shadowOffsetX = 2;
+            ctx.shadowOffsetY = 2;
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "800 46px Poppins, Arial"; 
+            ctx.textAlign = "left";
+            ctx.fillText("Z-TRONIK", 70, 70);
+            ctx.shadowColor = "transparent"; 
+            ctx.fillStyle = "#fbbf24"; 
+            ctx.font = "italic 400 22px Poppins, Arial"; 
+            ctx.fillText("Member Card Digital", 73, 100);
+            ctx.textAlign = "left";
+            ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
+            ctx.font = "16px Poppins, Arial";
+            ctx.fillText("NAMA MEMBER", 70, 180);
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "bold 34px Poppins, Arial";
+            ctx.fillText(nama.toUpperCase(), 70, 220);
+            ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
+            ctx.font = "16px Poppins, Arial";
+            ctx.fillText("ID MEMBER", 70, 300);
+            ctx.fillStyle = "#facc15"; 
+            ctx.font = "bold 36px Poppins, Arial";
+            ctx.fillText(idAsli, 70, 340);
+            ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
+            ctx.font = "16px Poppins, Arial";
+            ctx.fillText("ALAMAT", 70, 420);
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "bold 22px Poppins, Arial";
+            const potongAlamat = alamat.length > 35 ? alamat.substring(0, 35) + "..." : alamat;
+            ctx.fillText(potongAlamat, 70, 455);
+            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${idAsli}&margin=0`;
+            const img = new Image();
+            img.crossOrigin = "Anonymous"; 
+            img.onload = function() {
+                ctx.fillStyle = "#ffffff";
+                ctx.beginPath();
+                ctx.roundRect(520, 140, 260, 310, 16);
+                ctx.fill();
+                ctx.drawImage(img, 530, 150, 240, 240);
+                ctx.fillStyle = "#022c22"; 
+                ctx.font = "bold 16px Poppins, Arial";
+                ctx.textAlign = "center";
+                ctx.fillText("SCAN UNTUK CEK POIN", 650, 425);
+                ctx.restore();
+                const link = document.createElement('a');
+                link.download = `Z-Tronik_Member_${idAsli}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                const btn = document.getElementById('btn-cetak');
+                btn.innerHTML = '<i class="fa-solid fa-download"></i> PROSES & UNDUH KARTU';
+                btn.disabled = false;
+            };
+            img.onerror = function() {
+                const link = document.createElement('a');
+                link.download = `Z-Tronik_Member_${idAsli}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                const btn = document.getElementById('btn-cetak');
+                btn.innerHTML = '<i class="fa-solid fa-download"></i> PROSES & UNDUH KARTU';
+                btn.disabled = false;
+            };
+            img.src = qrUrl;
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            loadMemberCache();
+        });
+
+    </script>
+</body>
+</html>
