@@ -562,6 +562,15 @@
             }).catch(e => { ztPopup({type:"error",title:"Akses Kamera Gagal",msg:"Kamera tidak dapat diakses atau izin ditolak."}); document.getElementById('container-reader').classList.add('hidden'); });
         }
 
+        function formatHP(hp) {
+            if (hp === undefined || hp === null || hp === '' || hp === '-') return '-';
+            let str = String(hp).replace(/\D/g, ''); // ambil angka saja
+            if (str === '') return '-';
+            // Jika tidak diawali 0 dan panjang 9-11 digit, tambahkan 0 di depan
+            if (!str.startsWith('0') && str.length >= 9 && str.length <= 12) str = '0' + str;
+            return str;
+        }
+
         async function cekKartu() {
             const id = document.getElementById('input-member-id').value.trim();
             if(!id) return ztPopup({type:"warning",title:"Input Kosong",msg:"Isi ID Member atau No HP terlebih dahulu!"});
@@ -574,7 +583,7 @@
                 document.getElementById('modal-name').innerText = cached.nama;
                 document.getElementById('modal-id').innerText = cached.id;
                 document.getElementById('modal-poin').innerText = cached.poin;
-                document.getElementById('modal-hp').innerText = cached.hp || "-";
+                document.getElementById('modal-hp').innerText = formatHP(cached.hp);
                 document.getElementById('modal-alamat').innerText = cached.alamat || "-";
                 rl.innerHTML = '<li class="p-3 text-[11px] text-center text-slate-400 italic"><i class="fa-solid fa-spinner fa-spin mr-1"></i> Memuat riwayat...</li>';
                 document.getElementById('modal-result').style.display = 'flex';
@@ -606,7 +615,7 @@
                     document.getElementById('modal-name').innerText = r.nama;
                     document.getElementById('modal-id').innerText = r.id_asli;
                     document.getElementById('modal-poin').innerText = r.poin;
-                    document.getElementById('modal-hp').innerText = r.hp || "-";
+                    document.getElementById('modal-hp').innerText = formatHP(r.hp);
                     document.getElementById('modal-alamat').innerText = r.alamat || "-";
                     rl.innerHTML = '';
                     r.riwayat.forEach(row => {
