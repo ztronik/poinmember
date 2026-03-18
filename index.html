@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
     <style>
         body { font-family: 'Poppins', sans-serif; background-color: #064e3b; }
@@ -31,9 +32,13 @@
         </div>
         <hr class="border-slate-100 mb-6">
 
-        <div id="tab-container" class="bg-slate-50 p-1.5 rounded-2xl grid grid-cols-2 gap-1 items-center mb-6 border border-slate-100 relative transition-all duration-300">
+        <div id="tab-container" class="bg-slate-50 p-1.5 rounded-2xl grid grid-cols-3 gap-1 items-center mb-2 border border-slate-100 relative transition-all duration-300">
             <button id="tab-member" class="w-full bg-emerald-500 text-white py-2 rounded-xl text-xs font-semibold shadow-sm transition flex flex-col justify-center items-center gap-1" onclick="switchTab('member')"><i class="fa-solid fa-id-card text-lg"></i> Cek Poin</button>
             <button id="tab-kartu" class="w-full text-slate-400 py-2 rounded-xl text-xs font-medium hover:text-slate-600 transition flex flex-col justify-center items-center gap-1" onclick="switchTab('kartu')"><i class="fa-solid fa-download text-lg"></i> Unduh Kartu</button>
+            <button id="tab-tukar" class="w-full text-slate-400 py-2 rounded-xl text-xs font-medium hover:text-slate-600 transition flex flex-col justify-center items-center gap-1" onclick="switchTab('tukar')"><i class="fa-solid fa-gift text-lg"></i> Tukar Poin</button>
+        </div>
+        <div class="flex justify-center mb-6">
+            <button id="tab-faq" class="bg-slate-50 border border-slate-100 text-slate-400 px-5 py-1.5 rounded-xl text-[11px] font-medium hover:text-emerald-600 hover:border-emerald-200 transition flex items-center gap-2" onclick="bukaModalFaq()"><i class="fa-solid fa-circle-question"></i> Bantuan & FAQ</button>
         </div>
 
         <div id="form-kartu" class="" style="display:none;">
@@ -42,9 +47,338 @@
                 <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-emerald-500"><i class="fa-solid fa-id-card"></i></div>
                 <input type="text" id="input-cetak-id" placeholder="ID Member / No HP..." class="w-full pl-11 pr-4 py-4 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-emerald-500 font-bold uppercase text-slate-700 tracking-wider">
             </div>
-            <button id="btn-cetak" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-4 rounded-xl font-bold text-sm shadow-lg transition active:scale-95 flex justify-center items-center gap-2" onclick="prosesUnduhKartu()"><i class="fa-solid fa-download"></i> PROSES & UNDUH KARTU</button>
+            <button id="btn-cetak" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-4 rounded-xl font-bold text-sm shadow-lg transition active:scale-95 flex justify-center items-center gap-2" onclick="prosesUnduhKartu()"><i class="fa-solid fa-eye"></i> PREVIEW KARTU</button>
             
-            <canvas id="canvas-kartu" width="850" height="550" style="display:none;"></canvas>
+            <canvas id="canvas-kartu" width="1700" height="1100" style="display:none;"></canvas>
+            <canvas id="canvas-kartu-belakang" width="1700" height="1100" style="display:none;"></canvas>
+        </div>
+
+        <!-- Modal Preview Kartu -->
+        <div id="modal-preview-kartu" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm hidden justify-center items-center z-50 px-4" style="display:none;">
+            <div class="bg-white w-full max-w-sm rounded-[2.5rem] p-5 text-center shadow-2xl transform scale-95 transition-transform duration-300" id="modal-preview-content">
+                <h3 class="text-sm font-bold text-slate-700 mb-1 uppercase tracking-widest">Preview Kartu Member</h3>
+                <p class="text-[10px] text-slate-400 mb-4">Ketuk kartu untuk melihat sisi lain</p>
+
+                <!-- Flip Card Container -->
+                <div style="perspective: 1000px;" class="mb-4 cursor-pointer" onclick="flipKartu()">
+                    <div id="flip-inner" style="position:relative; width:100%; padding-top:64.7%; transition: transform 0.6s; transform-style: preserve-3d;">
+                        <!-- Sisi Depan -->
+                        <div style="position:absolute; top:0; left:0; width:100%; height:100%; backface-visibility:hidden; border-radius:1rem; overflow:hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.18);">
+                            <img id="preview-depan-img" src="" style="width:100%; height:100%; object-fit:cover; display:block;">
+                        </div>
+                        <!-- Sisi Belakang -->
+                        <div style="position:absolute; top:0; left:0; width:100%; height:100%; backface-visibility:hidden; transform: rotateY(180deg); border-radius:1rem; overflow:hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.18);">
+                            <img id="preview-belakang-img" src="" style="width:100%; height:100%; object-fit:cover; display:block;">
+                        </div>
+                    </div>
+                </div>
+
+                <p id="label-sisi-kartu" class="text-[10px] text-emerald-600 font-bold uppercase tracking-widest mb-4">Sisi Depan — Ketuk untuk balik</p>
+
+                <!-- 3 Tombol Unduh -->
+                <div class="flex flex-col gap-2 mb-3">
+                    <button onclick="unduhKartu('depan-belakang')" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-3 rounded-2xl font-bold text-xs shadow-lg transition active:scale-95 flex justify-center items-center gap-2">
+                        <i class="fa-solid fa-file-pdf"></i> UNDUH DEPAN & BELAKANG (PDF)
+                    </button>
+                    <div class="flex gap-2">
+                        <button onclick="unduhKartu('depan')" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-3 rounded-2xl font-bold text-xs transition active:scale-95 flex justify-center items-center gap-1">
+                            <i class="fa-solid fa-image"></i> Sisi Depan
+                        </button>
+                        <button onclick="unduhKartu('belakang')" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-3 rounded-2xl font-bold text-xs transition active:scale-95 flex justify-center items-center gap-1">
+                            <i class="fa-solid fa-image"></i> Sisi Belakang
+                        </button>
+                    </div>
+                </div>
+                <button onclick="tutupPreviewKartu()" class="w-full bg-slate-800 text-white py-3 rounded-2xl font-bold text-sm active:scale-95 transition">TUTUP</button>
+            </div>
+        </div>
+
+        <!-- FORM TUKAR POIN -->
+        <div id="form-tukar" class="" style="display:none;">
+            <p class="text-sm text-slate-500 mb-3">Tukar poin Anda dengan reward menarik</p>
+            
+            <!-- Step 1: Input ID -->
+            <div id="tukar-step-1">
+                <div id="container-reader-tukar" class="hidden relative mb-4">
+                    <button onclick="stopScannerTukar()" class="absolute top-2 right-2 z-10 bg-rose-500 text-white w-8 h-8 rounded-full flex items-center justify-center shadow border-2 border-white transition active:scale-90"><i class="fa-solid fa-xmark"></i></button>
+                    <div id="reader-tukar" class="w-full overflow-hidden border-2 border-emerald-200 rounded-xl"></div>
+                </div>
+                <div class="relative mb-4">
+                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-emerald-500"><i class="fa-solid fa-id-card"></i></div>
+                    <input type="text" id="input-tukar-id" placeholder="ID Member / No HP..." class="w-full pl-11 pr-4 py-4 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-emerald-500 font-bold uppercase text-slate-700 tracking-wider">
+                </div>
+                <div class="flex flex-col gap-3">
+                    <button id="btn-scan-tukar" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-4 rounded-xl font-bold text-sm shadow-lg transition active:scale-95 flex justify-center items-center gap-2" onclick="startScannerTukar()"><i class="fa-solid fa-camera"></i> SCAN QR KARTU</button>
+                    <button id="btn-cek-tukar" class="w-full bg-slate-100 hover:bg-slate-200 text-emerald-600 py-4 rounded-xl font-bold text-sm transition active:scale-95 flex justify-center items-center gap-2" onclick="cekMemberTukar()"><i class="fa-solid fa-magnifying-glass"></i> CEK POIN & REWARD</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Daftar Reward (bottom sheet) -->
+        <div id="modal-reward" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm hidden justify-center items-end z-[55] px-0" style="display:none;">
+            <div class="bg-white w-full max-w-md rounded-t-[2.5rem] shadow-2xl transform translate-y-full transition-transform duration-300" id="modal-reward-content" style="max-height:90vh; overflow-y:auto;">
+                <!-- Header sticky -->
+                <div class="sticky top-0 bg-white rounded-t-[2.5rem] z-10 px-5 pt-5 pb-4 border-b border-slate-100">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 bg-emerald-100 rounded-xl flex items-center justify-center">
+                                <i class="fa-solid fa-gift text-emerald-500"></i>
+                            </div>
+                            <div class="text-left">
+                                <h3 class="text-sm font-bold text-slate-800">Pilih Reward</h3>
+                                <p class="text-[10px] text-slate-400">Tukarkan poin Anda</p>
+                            </div>
+                        </div>
+                        <button onclick="tutupModalReward()" class="w-9 h-9 bg-slate-100 hover:bg-slate-200 rounded-xl flex items-center justify-center transition active:scale-90">
+                            <i class="fa-solid fa-xmark text-slate-500"></i>
+                        </button>
+                    </div>
+                    <!-- Info Member -->
+                    <div class="bg-emerald-50 rounded-2xl px-4 py-3 border border-emerald-100 flex items-center justify-between">
+                        <div class="text-left">
+                            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Member</p>
+                            <p class="text-sm font-bold text-slate-800" id="tukar-nama">-</p>
+                            <p class="text-[10px] text-slate-400" id="tukar-id-display">-</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-[10px] text-emerald-600 font-bold uppercase tracking-wider">Poin Anda</p>
+                            <p class="text-3xl font-extrabold text-emerald-600" id="tukar-poin-display">0</p>
+                        </div>
+                    </div>
+                </div>
+                <!-- Daftar Reward -->
+                <div class="px-5 py-4 pb-8">
+                    <p class="text-[10px] font-bold text-slate-400 mb-3 uppercase tracking-wider"><i class="fa-solid fa-gift mr-1"></i> Reward Tersedia</p>
+                    <div id="tukar-reward-list" class="space-y-2">
+                        <div class="text-center py-6 text-slate-400 text-xs"><i class="fa-solid fa-spinner fa-spin mr-1"></i> Memuat reward...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Konfirmasi Tukar Poin -->
+        <div id="modal-konfirmasi-tukar" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm hidden justify-center items-center z-[60] px-4" style="display:none;">
+            <div class="bg-white w-full max-w-sm rounded-[2.5rem] p-6 text-center shadow-2xl transform scale-95 transition-transform duration-300" id="modal-konfirmasi-content">
+                <div class="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-amber-200">
+                    <i class="fa-solid fa-gift text-2xl text-amber-500"></i>
+                </div>
+                <h3 class="text-lg font-bold text-slate-800 mb-1">Konfirmasi Penukaran</h3>
+                <p class="text-xs text-slate-400 mb-5">Apakah Anda yakin ingin menukar poin?</p>
+
+                <div class="bg-slate-50 rounded-2xl p-4 mb-5 border border-slate-100 text-left space-y-2">
+                    <div class="flex justify-between text-xs">
+                        <span class="text-slate-400 font-medium">Reward</span>
+                        <span class="font-bold text-slate-700" id="konfirm-reward-nama">-</span>
+                    </div>
+                    <div class="flex justify-between text-xs">
+                        <span class="text-slate-400 font-medium">Poin Digunakan</span>
+                        <span class="font-bold text-rose-500" id="konfirm-poin-kurang">-</span>
+                    </div>
+                    <div class="flex justify-between text-xs border-t border-slate-100 pt-2">
+                        <span class="text-slate-400 font-medium">Sisa Poin</span>
+                        <span class="font-bold text-emerald-600" id="konfirm-sisa-poin">-</span>
+                    </div>
+                </div>
+
+                <div class="flex gap-2">
+                    <button onclick="tutupModalKonfirmasi()" class="flex-1 bg-slate-100 text-slate-500 py-3 rounded-2xl font-bold text-sm transition active:scale-95">BATAL</button>
+                    <button id="btn-konfirm-tukar" onclick="prosesNukarPoin()" class="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white py-3 rounded-2xl font-bold text-sm shadow-lg transition active:scale-95">YA, TUKAR!</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Sukses Tukar -->
+        <div id="modal-sukses-tukar" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm hidden justify-center items-center z-[70] px-4" style="display:none;">
+            <div class="bg-white w-full max-w-xs rounded-[2.5rem] p-6 text-center shadow-2xl transform scale-95 transition-transform duration-300" id="modal-sukses-content">
+                <div class="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-emerald-200">
+                    <i class="fa-solid fa-circle-check text-3xl text-emerald-500"></i>
+                </div>
+                <h3 class="text-lg font-bold text-emerald-700 mb-1">Penukaran Berhasil!</h3>
+                <p class="text-xs text-slate-400 mb-4" id="sukses-pesan">Reward berhasil ditukar.</p>
+                <div class="bg-emerald-50 rounded-2xl p-3 mb-5 border border-emerald-100">
+                    <p class="text-[10px] text-emerald-600 font-bold uppercase tracking-wider">Sisa Poin Anda</p>
+                    <p class="text-4xl font-extrabold text-emerald-600" id="sukses-sisa-poin">0</p>
+                </div>
+                <button onclick="tutupModalSukses()" class="w-full bg-slate-800 text-white py-3 rounded-2xl font-bold text-sm shadow-xl active:scale-95 transition">SELESAI</button>
+            </div>
+        </div>
+
+        <!-- FORM FAQ -->
+        <!-- MODAL FAQ -->
+        <div id="modal-faq" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm hidden justify-center items-end z-50 px-0" style="display:none;">
+            <div class="bg-white w-full max-w-md rounded-t-[2.5rem] shadow-2xl transform translate-y-full transition-transform duration-300" id="modal-faq-content" style="max-height:90vh; overflow-y:auto;">
+                <!-- Header -->
+                <div class="flex items-center justify-between px-6 pt-6 pb-4 border-b border-slate-100 sticky top-0 bg-white rounded-t-[2.5rem] z-10">
+                    <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 bg-emerald-100 rounded-xl flex items-center justify-center">
+                            <i class="fa-solid fa-circle-question text-emerald-500"></i>
+                        </div>
+                        <div class="text-left">
+                            <h3 class="text-sm font-bold text-slate-800">Bantuan & FAQ</h3>
+                            <p class="text-[10px] text-slate-400">Panduan lengkap member Z-Tronik</p>
+                        </div>
+                    </div>
+                    <button onclick="tutupModalFaq()" class="w-9 h-9 bg-slate-100 hover:bg-slate-200 rounded-xl flex items-center justify-center transition active:scale-90">
+                        <i class="fa-solid fa-xmark text-slate-500"></i>
+                    </button>
+                </div>
+
+                <!-- Isi FAQ -->
+                <div class="px-5 py-4 space-y-3 pb-8">
+
+                    <!-- FAQ 1 -->
+                    <div class="bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
+                        <button class="w-full flex items-center justify-between px-4 py-3 text-left" onclick="toggleFaq(this)">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 bg-emerald-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                                    <i class="fa-solid fa-star text-emerald-500 text-sm"></i>
+                                </div>
+                                <span class="text-xs font-bold text-slate-700">Bagaimana cara mendapatkan poin?</span>
+                            </div>
+                            <i class="fa-solid fa-chevron-down text-slate-400 text-xs transition-transform duration-300 faq-icon"></i>
+                        </button>
+                        <div class="faq-body hidden px-4 pb-4">
+                            <div class="bg-slate-50 rounded-xl p-3 text-xs text-slate-600 leading-relaxed space-y-2">
+                                <p>Poin otomatis ditambahkan setiap kali Anda melakukan transaksi pembelian di Z-Tronik.</p>
+                                <p>Semakin besar transaksi Anda, semakin banyak poin yang Anda dapatkan. Poin akan langsung masuk ke akun member Anda setelah transaksi selesai diproses oleh kasir.</p>
+                                <div class="bg-emerald-50 border border-emerald-100 rounded-lg p-2 mt-2">
+                                    <p class="text-emerald-700 font-semibold"><i class="fa-solid fa-lightbulb mr-1"></i> Tips: Tunjukkan ID Member atau kartu QR Anda kepada kasir setiap kali berbelanja agar poin tidak terlewat!</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- FAQ 2 -->
+                    <div class="bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
+                        <button class="w-full flex items-center justify-between px-4 py-3 text-left" onclick="toggleFaq(this)">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                                    <i class="fa-solid fa-magnifying-glass text-blue-500 text-sm"></i>
+                                </div>
+                                <span class="text-xs font-bold text-slate-700">Bagaimana cara cek poin saya?</span>
+                            </div>
+                            <i class="fa-solid fa-chevron-down text-slate-400 text-xs transition-transform duration-300 faq-icon"></i>
+                        </button>
+                        <div class="faq-body hidden px-4 pb-4">
+                            <div class="bg-slate-50 rounded-xl p-3 text-xs text-slate-600 leading-relaxed space-y-2">
+                                <p>Ada dua cara untuk cek poin Anda melalui menu <b>Cek Poin</b>:</p>
+                                <div class="space-y-1.5">
+                                    <div class="flex gap-2 items-start">
+                                        <span class="bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 mt-0.5">1</span>
+                                        <p><b>Ketik manual</b> — masukkan ID Member atau nomor HP yang terdaftar, lalu tekan <i>Lihat Poin Saya</i>.</p>
+                                    </div>
+                                    <div class="flex gap-2 items-start">
+                                        <span class="bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 mt-0.5">2</span>
+                                        <p><b>Scan QR</b> — tekan tombol <i>Scan QR Kartu</i>, arahkan kamera ke QR Code pada kartu member Anda.</p>
+                                    </div>
+                                </div>
+                                <p class="mt-1">Setelah itu, total poin dan riwayat 10 transaksi terakhir Anda akan langsung tampil.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- FAQ 3 -->
+                    <div class="bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
+                        <button class="w-full flex items-center justify-between px-4 py-3 text-left" onclick="toggleFaq(this)">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 bg-amber-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                                    <i class="fa-solid fa-gift text-amber-500 text-sm"></i>
+                                </div>
+                                <span class="text-xs font-bold text-slate-700">Bagaimana cara menukar poin dengan reward?</span>
+                            </div>
+                            <i class="fa-solid fa-chevron-down text-slate-400 text-xs transition-transform duration-300 faq-icon"></i>
+                        </button>
+                        <div class="faq-body hidden px-4 pb-4">
+                            <div class="bg-slate-50 rounded-xl p-3 text-xs text-slate-600 leading-relaxed space-y-2">
+                                <p>Tukarkan poin Anda langsung melalui menu <b>Tukar Poin</b> dengan langkah berikut:</p>
+                                <div class="space-y-1.5">
+                                    <div class="flex gap-2 items-start">
+                                        <span class="bg-amber-400 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 mt-0.5">1</span>
+                                        <p>Masukkan ID Member atau nomor HP, atau scan QR kartu Anda.</p>
+                                    </div>
+                                    <div class="flex gap-2 items-start">
+                                        <span class="bg-amber-400 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 mt-0.5">2</span>
+                                        <p>Pilih reward yang tersedia. Reward yang poinnya belum mencukupi akan otomatis dikunci.</p>
+                                    </div>
+                                    <div class="flex gap-2 items-start">
+                                        <span class="bg-amber-400 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 mt-0.5">3</span>
+                                        <p>Konfirmasi penukaran pada popup yang muncul. Poin akan langsung berkurang setelah dikonfirmasi.</p>
+                                    </div>
+                                </div>
+                                <div class="bg-amber-50 border border-amber-100 rounded-lg p-2 mt-2">
+                                    <p class="text-amber-700 font-semibold"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Penukaran poin tidak dapat dibatalkan. Pastikan pilihan Anda sudah benar sebelum konfirmasi.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- FAQ 4 -->
+                    <div class="bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
+                        <button class="w-full flex items-center justify-between px-4 py-3 text-left" onclick="toggleFaq(this)">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 bg-purple-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                                    <i class="fa-solid fa-id-card text-purple-500 text-sm"></i>
+                                </div>
+                                <span class="text-xs font-bold text-slate-700">Bagaimana cara mendapatkan kartu member digital?</span>
+                            </div>
+                            <i class="fa-solid fa-chevron-down text-slate-400 text-xs transition-transform duration-300 faq-icon"></i>
+                        </button>
+                        <div class="faq-body hidden px-4 pb-4">
+                            <div class="bg-slate-50 rounded-xl p-3 text-xs text-slate-600 leading-relaxed space-y-2">
+                                <p>Kartu member digital tersedia di menu <b>Unduh Kartu</b>. Masukkan ID Member atau nomor HP Anda, lalu tekan <i>Preview Kartu</i>.</p>
+                                <p>Anda bisa melihat tampilan sisi depan dan belakang kartu, lalu mengunduhnya dalam kualitas tinggi sebagai file gambar.</p>
+                                <div class="space-y-1.5 mt-1">
+                                    <div class="flex gap-2 items-start">
+                                        <i class="fa-solid fa-layer-group text-emerald-500 mt-0.5 flex-shrink-0"></i>
+                                        <p><b>Unduh Depan & Belakang</b> — satu file berisi kedua sisi kartu.</p>
+                                    </div>
+                                    <div class="flex gap-2 items-start">
+                                        <i class="fa-solid fa-image text-slate-400 mt-0.5 flex-shrink-0"></i>
+                                        <p><b>Unduh Sisi Depan / Belakang</b> — unduh masing-masing sisi secara terpisah.</p>
+                                    </div>
+                                </div>
+                                <p class="mt-1">Simpan kartu di galeri HP Anda dan tunjukkan QR-nya kepada kasir saat berbelanja.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- FAQ 5 -->
+                    <div class="bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
+                        <button class="w-full flex items-center justify-between px-4 py-3 text-left" onclick="toggleFaq(this)">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 bg-rose-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                                    <i class="fa-solid fa-circle-question text-rose-500 text-sm"></i>
+                                </div>
+                                <span class="text-xs font-bold text-slate-700">Poin saya tidak bertambah setelah belanja, kenapa?</span>
+                            </div>
+                            <i class="fa-solid fa-chevron-down text-slate-400 text-xs transition-transform duration-300 faq-icon"></i>
+                        </button>
+                        <div class="faq-body hidden px-4 pb-4">
+                            <div class="bg-slate-50 rounded-xl p-3 text-xs text-slate-600 leading-relaxed space-y-2">
+                                <p>Beberapa hal yang mungkin menjadi penyebab:</p>
+                                <div class="space-y-1.5">
+                                    <div class="flex gap-2 items-start">
+                                        <i class="fa-solid fa-xmark text-rose-400 mt-0.5 flex-shrink-0"></i>
+                                        <p>ID Member tidak diberikan kepada kasir saat transaksi berlangsung.</p>
+                                    </div>
+                                    <div class="flex gap-2 items-start">
+                                        <i class="fa-solid fa-xmark text-rose-400 mt-0.5 flex-shrink-0"></i>
+                                        <p>Nomor HP yang digunakan berbeda dengan yang terdaftar.</p>
+                                    </div>
+                                    <div class="flex gap-2 items-start">
+                                        <i class="fa-solid fa-xmark text-rose-400 mt-0.5 flex-shrink-0"></i>
+                                        <p>Transaksi belum selesai diproses.</p>
+                                    </div>
+                                </div>
+                                <div class="bg-rose-50 border border-rose-100 rounded-lg p-2 mt-2">
+                                    <p class="text-rose-700 font-semibold"><i class="fa-solid fa-headset mr-1"></i> Jika masalah berlanjut, silakan hubungi langsung tim Z-Tronik untuk bantuan lebih lanjut.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
         </div>
 
         <div id="form-member" class="" style="display:block;">
@@ -101,6 +435,58 @@
     </div>
 
     <script>
+
+        // ===== CUSTOM POPUP (pengganti alert/confirm) =====
+        function ztPopup({ type = 'info', title = '', msg = '', confirmText = 'OK', cancelText = '', onConfirm = null, onCancel = null }) {
+            const overlay = document.getElementById('zt-popup-overlay');
+            const box = document.getElementById('zt-popup-box');
+            const iconWrap = document.getElementById('zt-popup-icon-wrap');
+            const icon = document.getElementById('zt-popup-icon');
+            const titleEl = document.getElementById('zt-popup-title');
+            const msgEl = document.getElementById('zt-popup-msg');
+            const btns = document.getElementById('zt-popup-btns');
+            const themes = {
+                success: { bg: '#f0fdf4', border: '#bbf7d0', iconBg: '#dcfce7', iconColor: '#16a34a', icon: 'fa-solid fa-circle-check', titleColor: '#15803d' },
+                error:   { bg: '#fff1f2', border: '#fecdd3', iconBg: '#ffe4e6', iconColor: '#e11d48', icon: 'fa-solid fa-circle-xmark',  titleColor: '#be123c' },
+                warning: { bg: '#fffbeb', border: '#fde68a', iconBg: '#fef3c7', iconColor: '#d97706', icon: 'fa-solid fa-triangle-exclamation', titleColor: '#b45309' },
+                info:    { bg: '#eff6ff', border: '#bfdbfe', iconBg: '#dbeafe', iconColor: '#2563eb', icon: 'fa-solid fa-circle-info',   titleColor: '#1d4ed8' },
+                confirm: { bg: '#fafafa', border: '#e2e8f0', iconBg: '#f1f5f9', iconColor: '#475569', icon: 'fa-solid fa-circle-question', titleColor: '#1e293b' },
+                logout:  { bg: '#fff1f2', border: '#fecdd3', iconBg: '#ffe4e6', iconColor: '#e11d48', icon: 'fa-solid fa-power-off',   titleColor: '#be123c' },
+            };
+            const t = themes[type] || themes.info;
+            box.style.background = t.bg;
+            box.style.border = '2px solid ' + t.border;
+            iconWrap.style.background = t.iconBg;
+            icon.className = t.icon;
+            icon.style.color = t.iconColor;
+            titleEl.style.color = t.titleColor;
+            titleEl.innerText = title;
+            msgEl.innerText = msg;
+            btns.innerHTML = '';
+            if (cancelText) {
+                const btnCancel = document.createElement('button');
+                btnCancel.className = 'flex-1 py-3 rounded-2xl font-bold text-sm bg-slate-100 text-slate-500 hover:bg-slate-200 transition active:scale-95';
+                btnCancel.innerText = cancelText;
+                btnCancel.onclick = () => { tutupZtPopup(); if (onCancel) onCancel(); };
+                btns.appendChild(btnCancel);
+            }
+            const btnOk = document.createElement('button');
+            btnOk.className = 'flex-1 py-3 rounded-2xl font-bold text-sm text-white shadow-lg transition active:scale-95';
+            btnOk.style.background = t.iconColor;
+            btnOk.innerText = confirmText;
+            btnOk.onclick = () => { tutupZtPopup(); if (onConfirm) onConfirm(); };
+            btns.appendChild(btnOk);
+            overlay.style.display = 'flex';
+            setTimeout(() => box.classList.replace('scale-90', 'scale-100'), 10);
+        }
+        function tutupZtPopup() {
+            const box = document.getElementById('zt-popup-box');
+            const overlay = document.getElementById('zt-popup-overlay');
+            box.classList.replace('scale-100', 'scale-90');
+            setTimeout(() => { overlay.style.display = 'none'; }, 200);
+        }
+        // ===== END CUSTOM POPUP =====
+
         // GANTI URL DI BAWAH INI DENGAN URL DEPLOYMENT APP SCRIPT ANDA
         const URL_DATABASE = "https://script.google.com/macros/s/AKfycbyv7kMUMyU2zq8rvnzac-YTvVNNzMuLQieiHwEK9H_vaXtVMS3t_ptE4Rab8EHAtqgx/exec";
         const HEADERS_POST = { 'Content-Type': 'text/plain;charset=utf-8' };
@@ -146,13 +532,16 @@
             if(document.getElementById('input-member-id')) document.getElementById('input-member-id').value = '';
             if(document.getElementById('input-cetak-id')) document.getElementById('input-cetak-id').value = '';
             stopScanner('reader');
+            stopScannerTukar();
+            tutupModalReward();
 
             document.getElementById('form-member').style.display = (tab === 'member') ? 'block' : 'none';
             document.getElementById('form-kartu').style.display = (tab === 'kartu') ? 'block' : 'none';
+            document.getElementById('form-tukar').style.display = (tab === 'tukar') ? 'block' : 'none';
 
             if (!memberCacheLoaded && !memberCacheLoading) loadMemberCache();
 
-            const tabs = ['member', 'kartu'];
+            const tabs = ['member', 'kartu', 'tukar'];
             tabs.forEach(t => {
                 const btn = document.getElementById(`tab-${t}`);
                 if (t === tab) {
@@ -161,6 +550,7 @@
                     btn.className = "w-full text-slate-400 py-2 rounded-xl text-xs font-medium hover:text-slate-600 transition flex flex-col justify-center items-center gap-1";
                 }
             });
+
         }
 
         function startScanner() {
@@ -169,12 +559,12 @@
             html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (t) => {
                 document.getElementById('input-member-id').value = t;
                 stopScanner('reader');
-            }).catch(e => { alert("Kamera error/tidak diizinkan"); document.getElementById('container-reader').classList.add('hidden'); });
+            }).catch(e => { ztPopup({type:"error",title:"Akses Kamera Gagal",msg:"Kamera tidak dapat diakses atau izin ditolak."}); document.getElementById('container-reader').classList.add('hidden'); });
         }
 
         async function cekKartu() {
             const id = document.getElementById('input-member-id').value.trim();
-            if(!id) return alert("Isi ID atau No HP!");
+            if(!id) return ztPopup({type:"warning",title:"Input Kosong",msg:"Isi ID Member atau No HP terlebih dahulu!"});
 
             const rl = document.getElementById('modal-riwayat');
 
@@ -225,8 +615,8 @@
                     });
                     document.getElementById('modal-result').style.display = 'flex';
                     setTimeout(() => document.getElementById('modal-content').classList.replace('scale-95', 'scale-100'), 10);
-                } else alert("Member tidak ditemukan!");
-            } catch(e) { alert("Error koneksi. Coba lagi."); }
+                } else ztPopup({type:"error",title:"Member Tidak Ditemukan",msg:"ID atau nomor HP yang dimasukkan tidak terdaftar."});
+            } catch(e) { ztPopup({type:"error",title:"Koneksi Gagal",msg:"Terjadi kesalahan jaringan. Silakan coba lagi."}); }
         }
 
         function tutupModal() {
@@ -234,9 +624,12 @@
             setTimeout(() => { document.getElementById('modal-result').style.display = 'none'; }, 200);
         }
 
+        // ===== KARTU: state global =====
+        let kartuIdAsli = "";
+
         async function prosesUnduhKartu() {
             const id = document.getElementById('input-cetak-id').value;
-            if(!id) return alert("Isi ID Member atau No HP terlebih dahulu!");
+            if(!id) return ztPopup({type:"warning",title:"Input Kosong",msg:"Isi ID Member atau No HP terlebih dahulu!"});
             
             const btn = document.getElementById('btn-cetak');
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> MENCARI DATA...';
@@ -245,7 +638,7 @@
             const cached = cariMemberDariCache(id);
             if (cached) {
                 btn.innerHTML = '<i class="fa-solid fa-palette"></i> MENGGAMBAR KARTU...';
-                buatDanUnduhCanvas(cached.nama, cached.id, cached.alamat || "-");
+                await buatPreviewKartu(cached.nama, cached.id, cached.alamat || "-");
                 return;
             }
 
@@ -254,118 +647,657 @@
                 const r = await res.json();
                 if(r.status === 'success') {
                     btn.innerHTML = '<i class="fa-solid fa-palette"></i> MENGGAMBAR KARTU...';
-                    buatDanUnduhCanvas(r.nama, r.id_asli, r.alamat || "-");
+                    await buatPreviewKartu(r.nama, r.id_asli, r.alamat || "-");
                 } else {
-                    alert("Member tidak ditemukan!");
-                    btn.innerHTML = '<i class="fa-solid fa-download"></i> PROSES & UNDUH KARTU';
+                    ztPopup({type:"error",title:"Member Tidak Ditemukan",msg:"ID atau nomor HP yang dimasukkan tidak terdaftar."});
+                    btn.innerHTML = '<i class="fa-solid fa-eye"></i> PREVIEW KARTU';
                     btn.disabled = false;
                 }
             } catch(e) { 
-                alert("Terjadi kesalahan jaringan."); 
-                btn.innerHTML = '<i class="fa-solid fa-download"></i> PROSES & UNDUH KARTU';
+                ztPopup({type:"error",title:"Koneksi Gagal",msg:"Terjadi kesalahan jaringan. Silakan coba lagi."});
+                btn.innerHTML = '<i class="fa-solid fa-eye"></i> PREVIEW KARTU';
                 btn.disabled = false;
             }
         }
 
-        function buatDanUnduhCanvas(nama, idAsli, alamat) {
-            const canvas = document.getElementById('canvas-kartu');
-            const ctx = canvas.getContext('2d');
-            ctx.clearRect(0, 0, 850, 550);
-            ctx.save(); 
+        // ===== GAMBAR SISI DEPAN (HD 1700x1100) =====
+        function gambarDepan(ctx, nama, idAsli, alamat) {
+            const W = 1700, H = 1100;
+            ctx.clearRect(0, 0, W, H);
+            ctx.save();
             ctx.beginPath();
-            ctx.roundRect(0, 0, 850, 550, 35); 
-            ctx.clip(); 
-            const grd = ctx.createLinearGradient(0, 0, 850, 550);
-            grd.addColorStop(0, "#022c22"); 
-            grd.addColorStop(1, "#059669"); 
+            ctx.roundRect(0, 0, W, H, 70);
+            ctx.clip();
+
+            // Gradient background
+            const grd = ctx.createLinearGradient(0, 0, W, H);
+            grd.addColorStop(0, "#022c22");
+            grd.addColorStop(1, "#059669");
             ctx.fillStyle = grd;
-            ctx.fillRect(0, 0, 850, 550);
-            ctx.fillStyle = "rgba(16, 185, 129, 0.2)"; 
+            ctx.fillRect(0, 0, W, H);
+
+            // Dekor segitiga kanan atas
+            ctx.fillStyle = "rgba(16, 185, 129, 0.2)";
             ctx.beginPath();
-            ctx.moveTo(400, 0);
-            ctx.lineTo(850, 0);
-            ctx.lineTo(850, 300);
-            ctx.fill();
-            ctx.fillStyle = "rgba(4, 120, 87, 0.4)"; 
+            ctx.moveTo(800, 0); ctx.lineTo(W, 0); ctx.lineTo(W, 600); ctx.fill();
+
+            // Dekor lingkaran kiri bawah
+            ctx.fillStyle = "rgba(4, 120, 87, 0.4)";
             ctx.beginPath();
-            ctx.arc(0, 550, 250, 0, 2 * Math.PI);
-            ctx.fill();
+            ctx.arc(0, H, 500, 0, 2 * Math.PI); ctx.fill();
+
+            // Garis emas horizontal
             ctx.beginPath();
-            ctx.moveTo(0, 120);
-            ctx.lineTo(850, 120);
-            ctx.strokeStyle = "rgba(251, 191, 36, 0.8)"; 
-            ctx.lineWidth = 2;
-            ctx.stroke();
-            ctx.shadowColor = "rgba(0, 0, 0, 0.3)";
-            ctx.shadowBlur = 4;
-            ctx.shadowOffsetX = 2;
-            ctx.shadowOffsetY = 2;
+            ctx.moveTo(0, 240); ctx.lineTo(W, 240);
+            ctx.strokeStyle = "rgba(251, 191, 36, 0.8)";
+            ctx.lineWidth = 4; ctx.stroke();
+
+            // Judul Z-TRONIK
+            ctx.shadowColor = "rgba(0,0,0,0.3)"; ctx.shadowBlur = 8; ctx.shadowOffsetX = 3; ctx.shadowOffsetY = 3;
             ctx.fillStyle = "#ffffff";
-            ctx.font = "800 46px Poppins, Arial"; 
+            ctx.font = "800 92px Poppins, Arial";
             ctx.textAlign = "left";
-            ctx.fillText("Z-TRONIK", 70, 70);
-            ctx.shadowColor = "transparent"; 
-            ctx.fillStyle = "#fbbf24"; 
-            ctx.font = "italic 400 22px Poppins, Arial"; 
-            ctx.fillText("Member Card Digital", 73, 100);
-            ctx.textAlign = "left";
-            ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
-            ctx.font = "16px Poppins, Arial";
-            ctx.fillText("NAMA MEMBER", 70, 180);
+            ctx.fillText("Z-TRONIK", 140, 145);
+
+            ctx.shadowColor = "transparent";
+            ctx.fillStyle = "#fbbf24";
+            ctx.font = "italic 400 44px Poppins, Arial";
+            ctx.fillText("Member Card Digital", 146, 210);
+
+            // Label NAMA MEMBER
+            ctx.fillStyle = "rgba(255,255,255,0.6)";
+            ctx.font = "32px Poppins, Arial";
+            ctx.fillText("NAMA MEMBER", 140, 360);
             ctx.fillStyle = "#ffffff";
-            ctx.font = "bold 34px Poppins, Arial";
-            ctx.fillText(nama.toUpperCase(), 70, 220);
-            ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
-            ctx.font = "16px Poppins, Arial";
-            ctx.fillText("ID MEMBER", 70, 300);
-            ctx.fillStyle = "#facc15"; 
-            ctx.font = "bold 36px Poppins, Arial";
-            ctx.fillText(idAsli, 70, 340);
-            ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
-            ctx.font = "16px Poppins, Arial";
-            ctx.fillText("ALAMAT", 70, 420);
+            ctx.font = "bold 68px Poppins, Arial";
+            const namaTampil = nama.length > 20 ? nama.substring(0,20)+"..." : nama;
+            ctx.fillText(namaTampil.toUpperCase(), 140, 440);
+
+            // Label ID MEMBER
+            ctx.fillStyle = "rgba(255,255,255,0.6)";
+            ctx.font = "32px Poppins, Arial";
+            ctx.fillText("ID MEMBER", 140, 600);
+            ctx.fillStyle = "#facc15";
+            ctx.font = "bold 72px Poppins, Arial";
+            ctx.fillText(idAsli, 140, 680);
+
+            // Label ALAMAT
+            ctx.fillStyle = "rgba(255,255,255,0.6)";
+            ctx.font = "32px Poppins, Arial";
+            ctx.fillText("ALAMAT", 140, 840);
             ctx.fillStyle = "#ffffff";
-            ctx.font = "bold 22px Poppins, Arial";
-            const potongAlamat = alamat.length > 35 ? alamat.substring(0, 35) + "..." : alamat;
-            ctx.fillText(potongAlamat, 70, 455);
-            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${idAsli}&margin=0`;
-            const img = new Image();
-            img.crossOrigin = "Anonymous"; 
-            img.onload = function() {
-                ctx.fillStyle = "#ffffff";
-                ctx.beginPath();
-                ctx.roundRect(520, 140, 260, 310, 16);
-                ctx.fill();
-                ctx.drawImage(img, 530, 150, 240, 240);
-                ctx.fillStyle = "#022c22"; 
-                ctx.font = "bold 16px Poppins, Arial";
-                ctx.textAlign = "center";
-                ctx.fillText("SCAN UNTUK CEK POIN", 650, 425);
-                ctx.restore();
-                const link = document.createElement('a');
-                link.download = `Z-Tronik_Member_${idAsli}.png`;
-                link.href = canvas.toDataURL('image/png');
-                link.click();
-                const btn = document.getElementById('btn-cetak');
-                btn.innerHTML = '<i class="fa-solid fa-download"></i> PROSES & UNDUH KARTU';
-                btn.disabled = false;
-            };
-            img.onerror = function() {
-                const link = document.createElement('a');
-                link.download = `Z-Tronik_Member_${idAsli}.png`;
-                link.href = canvas.toDataURL('image/png');
-                link.click();
-                const btn = document.getElementById('btn-cetak');
-                btn.innerHTML = '<i class="fa-solid fa-download"></i> PROSES & UNDUH KARTU';
-                btn.disabled = false;
-            };
-            img.src = qrUrl;
+            ctx.font = "bold 44px Poppins, Arial";
+            const potong = alamat.length > 30 ? alamat.substring(0,30)+"..." : alamat;
+            ctx.fillText(potong, 140, 910);
+
+            ctx.restore();
         }
 
-        window.addEventListener('DOMContentLoaded', () => {
+        // ===== GAMBAR SISI BELAKANG (HD 1700x1100) =====
+        function gambarBelakang(ctx, idAsli) {
+            const W = 1700, H = 1100;
+            ctx.clearRect(0, 0, W, H);
+            ctx.save();
+            ctx.beginPath();
+            ctx.roundRect(0, 0, W, H, 70);
+            ctx.clip();
+
+            // === BACKGROUND ===
+            const grd = ctx.createLinearGradient(W, H, 0, 0);
+            grd.addColorStop(0, "#022c22");
+            grd.addColorStop(1, "#047857");
+            ctx.fillStyle = grd;
+            ctx.fillRect(0, 0, W, H);
+
+            // Dekor lingkaran besar kiri atas (transparan)
+            ctx.fillStyle = "rgba(16, 185, 129, 0.12)";
+            ctx.beginPath(); ctx.arc(-80, -80, 400, 0, 2 * Math.PI); ctx.fill();
+
+            // Dekor lingkaran kanan bawah
+            ctx.fillStyle = "rgba(4, 120, 87, 0.25)";
+            ctx.beginPath(); ctx.arc(W + 80, H + 80, 420, 0, 2 * Math.PI); ctx.fill();
+
+            // Garis emas atas (header bar)
+            ctx.beginPath(); ctx.moveTo(0, 130); ctx.lineTo(W, 130);
+            ctx.strokeStyle = "rgba(251, 191, 36, 0.7)"; ctx.lineWidth = 3; ctx.stroke();
+
+            // Garis emas bawah (footer bar)
+            ctx.beginPath(); ctx.moveTo(0, H - 110); ctx.lineTo(W, H - 110);
+            ctx.strokeStyle = "rgba(251, 191, 36, 0.7)"; ctx.lineWidth = 3; ctx.stroke();
+
+            // === HEADER: Z-TRONIK ===
+            ctx.fillStyle = "#fbbf24";
+            ctx.font = "800 62px Poppins, Arial";
+            ctx.textAlign = "center";
+            ctx.fillText("Z-TRONIK", W / 2, 92);
+
+            // === DIVIDER VERTIKAL TENGAH ===
+            ctx.beginPath(); ctx.moveTo(W / 2, 155); ctx.lineTo(W / 2, H - 130);
+            ctx.strokeStyle = "rgba(255,255,255,0.12)"; ctx.lineWidth = 2; ctx.setLineDash([10, 8]);
+            ctx.stroke(); ctx.setLineDash([]);
+
+            // =============================================
+            // KOLOM KIRI: CARA DAPAT POIN
+            // =============================================
+            const LX = W / 4; // center kolom kiri
+
+            // Badge ikon bintang
+            ctx.fillStyle = "rgba(251, 191, 36, 0.18)";
+            ctx.beginPath(); ctx.arc(LX, 220, 52, 0, 2 * Math.PI); ctx.fill();
+            ctx.fillStyle = "#fbbf24";
+            ctx.font = "bold 54px Arial";
+            ctx.textAlign = "center";
+            ctx.fillText("★", LX, 240);
+
+            // Judul kolom kiri
+            ctx.fillStyle = "#fbbf24";
+            ctx.font = "bold 44px Poppins, Arial";
+            ctx.fillText("CARA DAPAT POIN", LX, 328);
+
+            // Garis bawah judul
+            ctx.beginPath(); ctx.moveTo(LX - 200, 345); ctx.lineTo(LX + 200, 345);
+            ctx.strokeStyle = "rgba(251,191,36,0.5)"; ctx.lineWidth = 2; ctx.stroke();
+
+            // Langkah-langkah
+            const langkahKiri = [
+                { no: "1", teks: "Datang & belanja di Z-Tronik" },
+                { no: "2", teks: "Tunjukkan ID atau kartu ini" },
+                { no: "3", teks: "Poin otomatis masuk ke akun!" },
+            ];
+            let yKiri = 420;
+            langkahKiri.forEach(l => {
+                // Lingkaran nomor
+                ctx.fillStyle = "#059669";
+                ctx.beginPath(); ctx.arc(LX - 230, yKiri - 18, 26, 0, 2 * Math.PI); ctx.fill();
+                ctx.fillStyle = "#ffffff";
+                ctx.font = "bold 28px Poppins, Arial";
+                ctx.textAlign = "center";
+                ctx.fillText(l.no, LX - 230, yKiri - 8);
+                // Teks langkah
+                ctx.fillStyle = "rgba(255,255,255,0.88)";
+                ctx.font = "32px Poppins, Arial";
+                ctx.textAlign = "left";
+                ctx.fillText(l.teks, LX - 192, yKiri - 4);
+                yKiri += 80;
+            });
+
+            // Tip box kiri
+            ctx.fillStyle = "rgba(5, 150, 105, 0.35)";
+            ctx.beginPath(); ctx.roundRect(LX - 330, 695, 660, 105, 20); ctx.fill();
+            ctx.strokeStyle = "rgba(251,191,36,0.4)"; ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.roundRect(LX - 330, 695, 660, 105, 20); ctx.stroke();
+            ctx.fillStyle = "#fbbf24";
+            ctx.font = "bold 26px Poppins, Arial";
+            ctx.textAlign = "center";
+            ctx.fillText("💡 Makin sering belanja,", LX, 740);
+            ctx.fillText("makin banyak poin terkumpul!", LX, 776);
+
+            // =============================================
+            // KOLOM KANAN: CARA TUKAR POIN
+            // =============================================
+            const RX = (W / 4) * 3; // center kolom kanan
+
+            // Badge ikon hadiah
+            ctx.fillStyle = "rgba(251, 191, 36, 0.18)";
+            ctx.beginPath(); ctx.arc(RX, 220, 52, 0, 2 * Math.PI); ctx.fill();
+            ctx.fillStyle = "#fbbf24";
+            ctx.font = "bold 50px Arial";
+            ctx.textAlign = "center";
+            ctx.fillText("🎁", RX, 242);
+
+            // Judul kolom kanan
+            ctx.fillStyle = "#fbbf24";
+            ctx.font = "bold 44px Poppins, Arial";
+            ctx.fillText("CARA TUKAR POIN", RX, 328);
+
+            // Garis bawah judul
+            ctx.beginPath(); ctx.moveTo(RX - 200, 345); ctx.lineTo(RX + 200, 345);
+            ctx.strokeStyle = "rgba(251,191,36,0.5)"; ctx.lineWidth = 2; ctx.stroke();
+
+            // Langkah-langkah
+            const langkahKanan = [
+                { no: "1", teks: "Buka menu Tukar Poin" },
+                { no: "2", teks: "Masukkan ID atau scan QR" },
+                { no: "3", teks: "Pilih reward & konfirmasi!" },
+            ];
+            let yKanan = 420;
+            langkahKanan.forEach(l => {
+                ctx.fillStyle = "#059669";
+                ctx.beginPath(); ctx.arc(RX - 230, yKanan - 18, 26, 0, 2 * Math.PI); ctx.fill();
+                ctx.fillStyle = "#ffffff";
+                ctx.font = "bold 28px Poppins, Arial";
+                ctx.textAlign = "center";
+                ctx.fillText(l.no, RX - 230, yKanan - 8);
+                ctx.fillStyle = "rgba(255,255,255,0.88)";
+                ctx.font = "32px Poppins, Arial";
+                ctx.textAlign = "left";
+                ctx.fillText(l.teks, RX - 192, yKanan - 4);
+                yKanan += 80;
+            });
+
+            // Tip box kanan
+            ctx.fillStyle = "rgba(5, 150, 105, 0.35)";
+            ctx.beginPath(); ctx.roundRect(RX - 330, 695, 660, 105, 20); ctx.fill();
+            ctx.strokeStyle = "rgba(251,191,36,0.4)"; ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.roundRect(RX - 330, 695, 660, 105, 20); ctx.stroke();
+            ctx.fillStyle = "#fbbf24";
+            ctx.font = "bold 26px Poppins, Arial";
+            ctx.textAlign = "center";
+            ctx.fillText("🎯 Tukar poin kapan saja,", RX, 740);
+            ctx.fillText("reward menanti Anda!", RX, 776);
+
+            // === FOOTER ===
+            ctx.fillStyle = "rgba(255,255,255,0.45)";
+            ctx.font = "26px Poppins, Arial";
+            ctx.textAlign = "center";
+            ctx.fillText("Kartu ini adalah bukti keanggotaan Anda sebagai member setia Z-Tronik", W / 2, H - 60);
+
+            ctx.restore();
+        }
+
+        // ===== RENDER SISI BELAKANG (tanpa QR) =====
+        function gambarQRBelakang(ctx, qrImg, idAsli) {
+            // Sisi belakang sudah sepenuhnya digambar di gambarBelakang()
+            // Fungsi ini sengaja dikosongkan
+        }
+
+        // ===== BUAT PREVIEW KEDUA SISI =====
+        function buatPreviewKartu(nama, idAsli, alamat) {
+            return new Promise((resolve) => {
+                kartuIdAsli = idAsli;
+                const canvasDepan = document.getElementById('canvas-kartu');
+                const canvasBelakang = document.getElementById('canvas-kartu-belakang');
+                const ctxDepan = canvasDepan.getContext('2d');
+                const ctxBelakang = canvasBelakang.getContext('2d');
+
+                // Gambar sisi depan (tanpa QR dulu)
+                gambarDepan(ctxDepan, nama, idAsli, alamat);
+
+                // Gambar sisi belakang background dulu
+                gambarBelakang(ctxBelakang, idAsli);
+
+                // Load QR untuk sisi depan dan belakang
+                const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=480x480&data=${idAsli}&margin=0`;
+                const img = new Image();
+                img.crossOrigin = "Anonymous";
+                img.onload = function() {
+                    // Tambah QR ke sisi depan
+                    ctxDepan.save();
+                    ctxDepan.beginPath();
+                    ctxDepan.roundRect(0, 0, 1700, 1100, 70);
+                    ctxDepan.clip();
+                    ctxDepan.fillStyle = "#ffffff";
+                    ctxDepan.beginPath();
+                    ctxDepan.roundRect(1040, 280, 520, 620, 32);
+                    ctxDepan.fill();
+                    ctxDepan.drawImage(img, 1060, 300, 480, 480);
+                    ctxDepan.fillStyle = "#022c22";
+                    ctxDepan.font = "bold 32px Poppins, Arial";
+                    ctxDepan.textAlign = "center";
+                    ctxDepan.fillText("SCAN UNTUK CEK POIN", 1300, 830);
+                    ctxDepan.restore();
+
+                    // Tambah QR ke sisi belakang
+                    ctxBelakang.save();
+                    ctxBelakang.beginPath();
+                    ctxBelakang.roundRect(0, 0, 1700, 1100, 70);
+                    ctxBelakang.clip();
+                    gambarQRBelakang(ctxBelakang, img, idAsli);
+                    ctxBelakang.restore();
+
+                    tampilkanPreviewModal(idAsli);
+                    resolve();
+                };
+                img.onerror = function() {
+                    tampilkanPreviewModal(idAsli);
+                    resolve();
+                };
+                img.src = qrUrl;
+            });
+        }
+
+        function tampilkanPreviewModal(idAsli) {
+            const canvasDepan = document.getElementById('canvas-kartu');
+            const canvasBelakang = document.getElementById('canvas-kartu-belakang');
+            document.getElementById('preview-depan-img').src = canvasDepan.toDataURL('image/png');
+            document.getElementById('preview-belakang-img').src = canvasBelakang.toDataURL('image/png');
+
+            // Reset flip
+            document.getElementById('flip-inner').style.transform = 'rotateY(0deg)';
+            document.getElementById('label-sisi-kartu').innerText = 'Sisi Depan — Ketuk untuk balik';
+            kartuFlipped = false;
+
+            const modal = document.getElementById('modal-preview-kartu');
+            modal.style.display = 'flex';
+            setTimeout(() => document.getElementById('modal-preview-content').classList.replace('scale-95', 'scale-100'), 10);
+
+            const btn = document.getElementById('btn-cetak');
+            btn.innerHTML = '<i class="fa-solid fa-eye"></i> PREVIEW KARTU';
+            btn.disabled = false;
+        }
+
+        let kartuFlipped = false;
+        function flipKartu() {
+            kartuFlipped = !kartuFlipped;
+            document.getElementById('flip-inner').style.transform = kartuFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)';
+            document.getElementById('label-sisi-kartu').innerText = kartuFlipped ? 'Sisi Belakang — Ketuk untuk balik' : 'Sisi Depan — Ketuk untuk balik';
+        }
+
+        function unduhKartu(jenis) {
+            const canvasDepan = document.getElementById('canvas-kartu');
+            const canvasBelakang = document.getElementById('canvas-kartu-belakang');
+            const id = kartuIdAsli;
+
+            if (jenis === 'depan') {
+                // PNG sisi depan
+                const link = document.createElement('a');
+                link.download = `Z-Tronik_Depan_${id}.png`;
+                link.href = canvasDepan.toDataURL('image/png');
+                link.click();
+
+            } else if (jenis === 'belakang') {
+                // PNG sisi belakang
+                const link = document.createElement('a');
+                link.download = `Z-Tronik_Belakang_${id}.png`;
+                link.href = canvasBelakang.toDataURL('image/png');
+                link.click();
+
+            } else if (jenis === 'depan-belakang') {
+                // PDF: depan halaman 1, belakang halaman 2
+                const { jsPDF } = window.jspdf;
+                // Ukuran kartu dalam mm: 85.6 x 54 (standar kartu kredit), pakai landscape
+                const pdfW = 85.6, pdfH = 54;
+                const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: [pdfW, pdfH] });
+
+                // Halaman 1 - Sisi Depan
+                const imgDepan = canvasDepan.toDataURL('image/jpeg', 1.0);
+                doc.addImage(imgDepan, 'JPEG', 0, 0, pdfW, pdfH);
+
+                // Halaman 2 - Sisi Belakang
+                doc.addPage();
+                const imgBelakang = canvasBelakang.toDataURL('image/jpeg', 1.0);
+                doc.addImage(imgBelakang, 'JPEG', 0, 0, pdfW, pdfH);
+
+                doc.save(`Z-Tronik_Kartu_${id}.pdf`);
+            }
+        }
+
+        function tutupPreviewKartu() {
+            document.getElementById('modal-preview-content').classList.replace('scale-100', 'scale-95');
+            setTimeout(() => { document.getElementById('modal-preview-kartu').style.display = 'none'; }, 200);
+        }
+
+        // ===== SCANNER TUKAR POIN =====
+        let html5QrCodeTukar;
+
+        function startScannerTukar() {
+            document.getElementById('container-reader-tukar').classList.remove('hidden');
+            html5QrCodeTukar = new Html5Qrcode("reader-tukar");
+            html5QrCodeTukar.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (t) => {
+                document.getElementById('input-tukar-id').value = t;
+                stopScannerTukar();
+            }).catch(e => { ztPopup({type:"error",title:"Akses Kamera Gagal",msg:"Kamera tidak dapat diakses atau izin ditolak."}); document.getElementById('container-reader-tukar').classList.add('hidden'); });
+        }
+
+        function stopScannerTukar() {
+            document.getElementById('container-reader-tukar').classList.add('hidden');
+            try {
+                if (html5QrCodeTukar) html5QrCodeTukar.stop().catch(e => console.log(e));
+            } catch(e) { console.log(e); }
+        }
+
+        // ===== TUKAR POIN =====
+        let tukarMemberData = null;
+        let tukarRewardPilihan = null;
+
+        async function cekMemberTukar() {
+            const id = document.getElementById('input-tukar-id').value.trim();
+            if (!id) return ztPopup({type:"warning",title:"Input Kosong",msg:"Isi ID Member atau No HP terlebih dahulu!"});
+
+            const btn = document.getElementById('btn-cek-tukar');
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> MENCARI...';
+            btn.disabled = true;
+
+            let memberData = null;
+
+            // Coba dari cache dulu
+            const cached = cariMemberDariCache(id);
+            if (cached) {
+                // Fetch ulang dari server untuk data poin terbaru
+                try {
+                    const res = await fetch(`${URL_DATABASE}?id=${cached.id}`);
+                    const r = await res.json();
+                    if (r.status === 'success') {
+                        memberData = { nama: r.nama, id: r.id_asli, poin: r.poin };
+                    } else {
+                        memberData = { nama: cached.nama, id: cached.id, poin: cached.poin };
+                    }
+                } catch(e) {
+                    memberData = { nama: cached.nama, id: cached.id, poin: cached.poin };
+                }
+            } else {
+                try {
+                    const res = await fetch(`${URL_DATABASE}?id=${id}`);
+                    const r = await res.json();
+                    if (r.status === 'success') {
+                        memberData = { nama: r.nama, id: r.id_asli, poin: r.poin };
+                    } else {
+                        ztPopup({type:"error",title:"Member Tidak Ditemukan",msg:"ID atau nomor HP yang dimasukkan tidak terdaftar."});
+                        btn.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i> CEK POIN & REWARD';
+                        btn.disabled = false;
+                        return;
+                    }
+                } catch(e) {
+                    ztPopup({type:"error",title:"Koneksi Gagal",msg:"Terjadi kesalahan jaringan. Silakan coba lagi."});
+                    btn.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i> CEK POIN & REWARD';
+                    btn.disabled = false;
+                    return;
+                }
+            }
+
+            tukarMemberData = memberData;
+
+            document.getElementById('tukar-nama').innerText = memberData.nama;
+            document.getElementById('tukar-id-display').innerText = 'ID: ' + memberData.id;
+            document.getElementById('tukar-poin-display').innerText = memberData.poin;
+
+            // Muat daftar reward dari GAS
+            await muatDaftarReward(memberData.poin);
+
+            // Buka modal reward (bottom sheet)
+            bukaModalReward();
+
+            btn.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i> CEK POIN & REWARD';
+            btn.disabled = false;
+        }
+
+        async function muatDaftarReward(poinMember) {
+            const listEl = document.getElementById('tukar-reward-list');
+            listEl.innerHTML = '<div class="text-center py-6 text-slate-400 text-xs"><i class="fa-solid fa-spinner fa-spin mr-1"></i> Memuat reward...</div>';
+
+            try {
+                const res = await fetch(URL_DATABASE, {
+                    method: 'POST',
+                    headers: HEADERS_POST,
+                    redirect: 'follow',
+                    body: JSON.stringify({ action: 'get_rewards' })
+                });
+                const r = await res.json();
+
+                if (r.status === 'success' && r.rewards && r.rewards.length > 0) {
+                    listEl.innerHTML = '';
+                    r.rewards.forEach(rw => {
+                        const cukup = parseInt(poinMember) >= parseInt(rw.poin);
+                        listEl.innerHTML += `
+                            <div class="flex items-center justify-between p-3 rounded-2xl border ${cukup ? 'bg-white border-slate-200 hover:border-emerald-400 cursor-pointer' : 'bg-slate-50 border-slate-100 opacity-50'} transition"
+                                ${cukup ? `onclick="pilihReward('${rw.nama.replace(/'/g,"\\'")}', ${rw.poin})"` : ''}>
+                                <div class="text-left">
+                                    <p class="text-xs font-bold text-slate-700">${rw.nama}</p>
+                                    <p class="text-[10px] text-slate-400 mt-0.5">${rw.deskripsi || ''}</p>
+                                </div>
+                                <div class="text-right flex-shrink-0 ml-3">
+                                    <p class="text-sm font-extrabold ${cukup ? 'text-emerald-600' : 'text-slate-400'}">${rw.poin} <span class="text-[9px] font-medium">poin</span></p>
+                                    ${!cukup ? '<p class="text-[9px] text-rose-400">Poin kurang</p>' : ''}
+                                </div>
+                            </div>`;
+                    });
+                } else {
+                    listEl.innerHTML = '<div class="text-center py-6 text-slate-400 text-xs italic">Belum ada reward tersedia.</div>';
+                }
+            } catch(e) {
+                listEl.innerHTML = '<div class="text-center py-6 text-rose-400 text-xs italic">Gagal memuat reward.</div>';
+            }
+        }
+
+        function pilihReward(namaReward, poinReward) {
+            if (!tukarMemberData) return;
+            const sisaPoin = parseInt(tukarMemberData.poin) - parseInt(poinReward);
+            tukarRewardPilihan = { nama: namaReward, poin: poinReward };
+
+            document.getElementById('konfirm-reward-nama').innerText = namaReward;
+            document.getElementById('konfirm-poin-kurang').innerText = '- ' + poinReward + ' poin';
+            document.getElementById('konfirm-sisa-poin').innerText = sisaPoin + ' poin';
+
+            const modalEl = document.getElementById('modal-konfirmasi-tukar');
+            modalEl.style.display = 'flex';
+            setTimeout(() => document.getElementById('modal-konfirmasi-content').classList.replace('scale-95', 'scale-100'), 10);
+        }
+
+        function tutupModalKonfirmasi() {
+            document.getElementById('modal-konfirmasi-content').classList.replace('scale-100', 'scale-95');
+            setTimeout(() => { document.getElementById('modal-konfirmasi-tukar').style.display = 'none'; }, 200);
+        }
+
+        async function prosesNukarPoin() {
+            if (!tukarMemberData || !tukarRewardPilihan) return;
+
+            const btn = document.getElementById('btn-konfirm-tukar');
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> MEMPROSES...';
+            btn.disabled = true;
+
+            try {
+                const res = await fetch(URL_DATABASE, {
+                    method: 'POST',
+                    headers: HEADERS_POST,
+                    redirect: 'follow',
+                    body: JSON.stringify({
+                        action: 'tukar_poin',
+                        id: tukarMemberData.id,
+                        reward: tukarRewardPilihan.nama,
+                        poin: tukarRewardPilihan.poin
+                    })
+                });
+                const r = await res.json();
+
+                if (r.status === 'success') {
+                    const sisaPoin = parseInt(tukarMemberData.poin) - parseInt(tukarRewardPilihan.poin);
+                    tukarMemberData.poin = sisaPoin;
+
+                    // Update tampilan poin member
+                    document.getElementById('tukar-poin-display').innerText = sisaPoin;
+
+                    // Tutup modal konfirmasi
+                    tutupModalKonfirmasi();
+
+                    // Tampilkan modal sukses
+                    document.getElementById('sukses-pesan').innerText = `"${tukarRewardPilihan.nama}" berhasil ditukar!`;
+                    document.getElementById('sukses-sisa-poin').innerText = sisaPoin;
+                    const modalSukses = document.getElementById('modal-sukses-tukar');
+                    modalSukses.style.display = 'flex';
+                    setTimeout(() => document.getElementById('modal-sukses-content').classList.replace('scale-95', 'scale-100'), 10);
+
+                    // Refresh daftar reward dengan poin baru
+                    muatDaftarReward(sisaPoin);
+
+                    // Refresh cache
+                    memberCacheLoaded = false;
+                    loadMemberCache(true);
+                } else {
+                    ztPopup({type:"error",title:"Penukaran Gagal",msg:r.message||"Gagal menukar poin. Silakan coba lagi."});
+                }
+            } catch(e) {
+                ztPopup({type:"error",title:"Koneksi Gagal",msg:"Terjadi kesalahan jaringan. Silakan coba lagi."});
+            }
+
+            btn.innerHTML = 'YA, TUKAR!';
+            btn.disabled = false;
+        }
+
+        function tutupModalSukses() {
+            document.getElementById('modal-sukses-content').classList.replace('scale-100', 'scale-95');
+            setTimeout(() => { document.getElementById('modal-sukses-tukar').style.display = 'none'; }, 200);
+        }
+
+        function resetTukarForm() {
+            tukarMemberData = null;
+            tukarRewardPilihan = null;
+            document.getElementById('input-tukar-id').value = '';
+            stopScannerTukar();
+            tutupModalReward();
+        }
+
+        function bukaModalReward() {
+            const modal = document.getElementById('modal-reward');
+            modal.style.display = 'flex';
+            setTimeout(() => {
+                document.getElementById('modal-reward-content').style.transform = 'translateY(0)';
+            }, 10);
+        }
+
+        function tutupModalReward() {
+            const el = document.getElementById('modal-reward-content');
+            if (el) {
+                el.style.transform = 'translateY(100%)';
+                setTimeout(() => { document.getElementById('modal-reward').style.display = 'none'; }, 300);
+            }
+        }
+
+        function bukaModalFaq() {
+            // Reset semua faq tertutup
+            document.querySelectorAll('.faq-body').forEach(b => b.classList.add('hidden'));
+            document.querySelectorAll('.faq-icon').forEach(i => i.style.transform = 'rotate(0deg)');
+            const modal = document.getElementById('modal-faq');
+            modal.style.display = 'flex';
+            setTimeout(() => {
+                document.getElementById('modal-faq-content').style.transform = 'translateY(0)';
+            }, 10);
+        }
+
+        function tutupModalFaq() {
+            document.getElementById('modal-faq-content').style.transform = 'translateY(100%)';
+            setTimeout(() => { document.getElementById('modal-faq').style.display = 'none'; }, 300);
+        }
+
+        function toggleFaq(btn) {
+            const body = btn.nextElementSibling;
+            const icon = btn.querySelector('.faq-icon');
+            const isOpen = !body.classList.contains('hidden');
+            // Tutup semua
+            document.querySelectorAll('.faq-body').forEach(b => b.classList.add('hidden'));
+            document.querySelectorAll('.faq-icon').forEach(i => i.style.transform = 'rotate(0deg)');
+            // Buka yang diklik (jika belum terbuka)
+            if (!isOpen) {
+                body.classList.remove('hidden');
+                icon.style.transform = 'rotate(180deg)';
+            }
+        }
+
+                window.addEventListener('DOMContentLoaded', () => {
             loadMemberCache();
         });
 
     </script>
+
+    <!-- CUSTOM POPUP NOTIFIKASI -->
+    <div id="zt-popup-overlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[999] hidden justify-center items-center px-5" style="display:none;">
+        <div id="zt-popup-box" class="w-full max-w-xs rounded-[2rem] p-6 text-center shadow-2xl transform scale-90 transition-all duration-300" style="background:#fff;">
+            <div id="zt-popup-icon-wrap" class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i id="zt-popup-icon" class="text-3xl"></i>
+            </div>
+            <h4 id="zt-popup-title" class="text-base font-extrabold mb-1"></h4>
+            <p id="zt-popup-msg" class="text-xs text-slate-500 leading-relaxed mb-5"></p>
+            <div id="zt-popup-btns" class="flex gap-2 justify-center"></div>
+        </div>
+    </div>
 </body>
 </html>
