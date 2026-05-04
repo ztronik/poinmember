@@ -3,6 +3,6 @@
       "target": {
         "namespace": "android_app",
         "package_name": "io.github.ztronik.twa",
-        "sha256_cert_fingerprints": ["BB:DD:CA:1F:9B:94:FA:93:19:1E:DD:04:EB:46:90:98:CA:E0:C9:FA:A7:DC:1F:4B:72:23:69:FD:24:0C:EB:E2"]
+        "sha256_cert_fingerprints": ["98:8A:60:40:59:12:06:95:A8:25:A0:98:E9:31:BA:76:B6:16:F4:5F:3C:5F:23:4F:A8:F9:4E:B9:CB:6C:3B:63"]
       }
     }]
