@@ -10,5 +10,8 @@
   "theme_color": "#064e3b",
   "id": "com.ztronik.poinmember",
   "description": "Aplikasi layanan pengecekan poin member untuk pelanggan setia Z-TRONIK",
-  "lang": "id"
+  "lang": "id",
+  "categories": [
+    "business"
+  ]
 }
