@@ -111,6 +111,20 @@
                     <button id="btn-scan-tukar" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-4 rounded-xl font-bold text-sm shadow-lg transition active:scale-95 flex justify-center items-center gap-2" onclick="startScannerTukar()"><i class="fa-solid fa-camera"></i> SCAN QR KARTU</button>
                     <button id="btn-cek-tukar" class="w-full bg-slate-100 hover:bg-slate-200 text-emerald-600 py-4 rounded-xl font-bold text-sm transition active:scale-95 flex justify-center items-center gap-2" onclick="cekMemberTukar()"><i class="fa-solid fa-magnifying-glass"></i> CEK POIN & REWARD</button>
                 </div>
+                <div class="mt-4 pt-4 border-t border-slate-100">
+                    <button onclick="bukaModalSettingPin()" class="w-full flex items-center justify-between px-4 py-3 bg-violet-50 border border-violet-100 rounded-2xl active:scale-95 transition hover:bg-violet-100">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 bg-violet-100 rounded-xl flex items-center justify-center">
+                                <i class="fa-solid fa-shield-halved text-violet-500 text-sm"></i>
+                            </div>
+                            <div class="text-left">
+                                <p class="text-xs font-bold text-violet-700">Keamanan PIN Tukar</p>
+                                <p class="text-[10px] text-violet-400">Ubah PIN penukaran poin</p>
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-violet-400 text-xs"></i>
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -182,7 +196,7 @@
 
                 <div class="flex gap-2">
                     <button onclick="tutupModalKonfirmasi()" class="flex-1 bg-slate-100 text-slate-500 py-3 rounded-2xl font-bold text-sm transition active:scale-95">BATAL</button>
-                    <button id="btn-konfirm-tukar" onclick="prosesNukarPoin()" class="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white py-3 rounded-2xl font-bold text-sm shadow-lg transition active:scale-95">YA, TUKAR!</button>
+                    <button id="btn-konfirm-tukar" onclick="handleKonfirmasiTukar()" class="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white py-3 rounded-2xl font-bold text-sm shadow-lg transition active:scale-95">YA, TUKAR!</button>
                 </div>
             </div>
         </div>
@@ -200,6 +214,76 @@
                     <p class="text-4xl font-extrabold text-emerald-600" id="sukses-sisa-poin">0</p>
                 </div>
                 <button onclick="tutupModalSukses()" class="w-full bg-slate-800 text-white py-3 rounded-2xl font-bold text-sm shadow-xl active:scale-95 transition">SELESAI</button>
+            </div>
+        </div>
+
+        <!-- Modal PIN Tukar Poin -->
+        <div id="modal-pin-tukar" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm hidden justify-center items-center z-[75] px-4" style="display:none;">
+            <div class="bg-white w-full max-w-sm rounded-[2.5rem] p-6 text-center shadow-2xl transform scale-95 transition-transform duration-300" id="modal-pin-content">
+                <div class="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-3 border-2 border-amber-200">
+                    <i class="fa-solid fa-lock text-2xl text-amber-500"></i>
+                </div>
+                <h3 class="text-lg font-bold text-slate-800 mb-1">Verifikasi PIN</h3>
+                <p class="text-xs text-slate-400 mb-4">Masukkan PIN 6 digit untuk konfirmasi penukaran poin</p>
+                <div class="flex justify-center gap-2 mb-5" id="pin-dots">
+                    <div class="w-10 h-10 rounded-xl border-2 border-slate-200 bg-slate-50 flex items-center justify-center text-lg font-bold text-slate-700" id="pd0">-</div>
+                    <div class="w-10 h-10 rounded-xl border-2 border-slate-200 bg-slate-50 flex items-center justify-center text-lg font-bold text-slate-700" id="pd1">-</div>
+                    <div class="w-10 h-10 rounded-xl border-2 border-slate-200 bg-slate-50 flex items-center justify-center text-lg font-bold text-slate-700" id="pd2">-</div>
+                    <div class="w-10 h-10 rounded-xl border-2 border-slate-200 bg-slate-50 flex items-center justify-center text-lg font-bold text-slate-700" id="pd3">-</div>
+                    <div class="w-10 h-10 rounded-xl border-2 border-slate-200 bg-slate-50 flex items-center justify-center text-lg font-bold text-slate-700" id="pd4">-</div>
+                    <div class="w-10 h-10 rounded-xl border-2 border-slate-200 bg-slate-50 flex items-center justify-center text-lg font-bold text-slate-700" id="pd5">-</div>
+                </div>
+                <p class="text-xs text-rose-500 font-semibold mb-3 hidden" id="pin-error-msg">PIN salah, coba lagi.</p>
+                <!-- Numpad -->
+                <div class="grid grid-cols-3 gap-2 mb-4">
+                    <button onclick="inputPinDigit('1')" class="py-3 rounded-2xl bg-slate-100 text-slate-700 font-bold text-lg active:scale-95 transition hover:bg-slate-200">1</button>
+                    <button onclick="inputPinDigit('2')" class="py-3 rounded-2xl bg-slate-100 text-slate-700 font-bold text-lg active:scale-95 transition hover:bg-slate-200">2</button>
+                    <button onclick="inputPinDigit('3')" class="py-3 rounded-2xl bg-slate-100 text-slate-700 font-bold text-lg active:scale-95 transition hover:bg-slate-200">3</button>
+                    <button onclick="inputPinDigit('4')" class="py-3 rounded-2xl bg-slate-100 text-slate-700 font-bold text-lg active:scale-95 transition hover:bg-slate-200">4</button>
+                    <button onclick="inputPinDigit('5')" class="py-3 rounded-2xl bg-slate-100 text-slate-700 font-bold text-lg active:scale-95 transition hover:bg-slate-200">5</button>
+                    <button onclick="inputPinDigit('6')" class="py-3 rounded-2xl bg-slate-100 text-slate-700 font-bold text-lg active:scale-95 transition hover:bg-slate-200">6</button>
+                    <button onclick="inputPinDigit('7')" class="py-3 rounded-2xl bg-slate-100 text-slate-700 font-bold text-lg active:scale-95 transition hover:bg-slate-200">7</button>
+                    <button onclick="inputPinDigit('8')" class="py-3 rounded-2xl bg-slate-100 text-slate-700 font-bold text-lg active:scale-95 transition hover:bg-slate-200">8</button>
+                    <button onclick="inputPinDigit('9')" class="py-3 rounded-2xl bg-slate-100 text-slate-700 font-bold text-lg active:scale-95 transition hover:bg-slate-200">9</button>
+                    <button onclick="hapusPinDigit()" class="py-3 rounded-2xl bg-rose-50 text-rose-400 font-bold text-lg active:scale-95 transition hover:bg-rose-100 col-start-1"><i class="fa-solid fa-delete-left"></i></button>
+                    <button onclick="inputPinDigit('0')" class="py-3 rounded-2xl bg-slate-100 text-slate-700 font-bold text-lg active:scale-95 transition hover:bg-slate-200">0</button>
+                    <button onclick="tutupModalPin()" class="py-3 rounded-2xl bg-slate-200 text-slate-500 font-bold text-sm active:scale-95 transition hover:bg-slate-300">Batal</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Setting PIN Tukar -->
+        <div id="modal-setting-pin" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm hidden justify-center items-center z-[80] px-4" style="display:none;">
+            <div class="bg-white w-full max-w-sm rounded-[2.5rem] p-6 text-center shadow-2xl transform scale-95 transition-transform duration-300" id="modal-setting-pin-content">
+                <div class="w-16 h-16 bg-violet-50 rounded-full flex items-center justify-center mx-auto mb-3 border-2 border-violet-200">
+                    <i class="fa-solid fa-shield-halved text-2xl text-violet-500"></i>
+                </div>
+                <h3 class="text-lg font-bold text-slate-800 mb-1" id="setting-pin-title">Ubah PIN Tukar</h3>
+                <p class="text-xs text-slate-400 mb-4" id="setting-pin-subtitle">Masukkan PIN baru 6 digit untuk keamanan penukaran poin</p>
+                <div class="flex justify-center gap-2 mb-2" id="setting-pin-dots">
+                    <div class="w-10 h-10 rounded-xl border-2 border-slate-200 bg-slate-50 flex items-center justify-center text-lg font-bold text-slate-700" id="spd0">-</div>
+                    <div class="w-10 h-10 rounded-xl border-2 border-slate-200 bg-slate-50 flex items-center justify-center text-lg font-bold text-slate-700" id="spd1">-</div>
+                    <div class="w-10 h-10 rounded-xl border-2 border-slate-200 bg-slate-50 flex items-center justify-center text-lg font-bold text-slate-700" id="spd2">-</div>
+                    <div class="w-10 h-10 rounded-xl border-2 border-slate-200 bg-slate-50 flex items-center justify-center text-lg font-bold text-slate-700" id="spd3">-</div>
+                    <div class="w-10 h-10 rounded-xl border-2 border-slate-200 bg-slate-50 flex items-center justify-center text-lg font-bold text-slate-700" id="spd4">-</div>
+                    <div class="w-10 h-10 rounded-xl border-2 border-slate-200 bg-slate-50 flex items-center justify-center text-lg font-bold text-slate-700" id="spd5">-</div>
+                </div>
+                <p class="text-xs text-rose-500 font-semibold mb-3 hidden" id="setting-pin-error">PIN harus 6 digit angka.</p>
+                <div class="grid grid-cols-3 gap-2 mb-4">
+                    <button onclick="inputSettingPinDigit('1')" class="py-3 rounded-2xl bg-slate-100 text-slate-700 font-bold text-lg active:scale-95 transition hover:bg-slate-200">1</button>
+                    <button onclick="inputSettingPinDigit('2')" class="py-3 rounded-2xl bg-slate-100 text-slate-700 font-bold text-lg active:scale-95 transition hover:bg-slate-200">2</button>
+                    <button onclick="inputSettingPinDigit('3')" class="py-3 rounded-2xl bg-slate-100 text-slate-700 font-bold text-lg active:scale-95 transition hover:bg-slate-200">3</button>
+                    <button onclick="inputSettingPinDigit('4')" class="py-3 rounded-2xl bg-slate-100 text-slate-700 font-bold text-lg active:scale-95 transition hover:bg-slate-200">4</button>
+                    <button onclick="inputSettingPinDigit('5')" class="py-3 rounded-2xl bg-slate-100 text-slate-700 font-bold text-lg active:scale-95 transition hover:bg-slate-200">5</button>
+                    <button onclick="inputSettingPinDigit('6')" class="py-3 rounded-2xl bg-slate-100 text-slate-700 font-bold text-lg active:scale-95 transition hover:bg-slate-200">6</button>
+                    <button onclick="inputSettingPinDigit('7')" class="py-3 rounded-2xl bg-slate-100 text-slate-700 font-bold text-lg active:scale-95 transition hover:bg-slate-200">7</button>
+                    <button onclick="inputSettingPinDigit('8')" class="py-3 rounded-2xl bg-slate-100 text-slate-700 font-bold text-lg active:scale-95 transition hover:bg-slate-200">8</button>
+                    <button onclick="inputSettingPinDigit('9')" class="py-3 rounded-2xl bg-slate-100 text-slate-700 font-bold text-lg active:scale-95 transition hover:bg-slate-200">9</button>
+                    <button onclick="hapusSettingPinDigit()" class="py-3 rounded-2xl bg-rose-50 text-rose-400 font-bold text-lg active:scale-95 transition hover:bg-rose-100 col-start-1"><i class="fa-solid fa-delete-left"></i></button>
+                    <button onclick="inputSettingPinDigit('0')" class="py-3 rounded-2xl bg-slate-100 text-slate-700 font-bold text-lg active:scale-95 transition hover:bg-slate-200">0</button>
+                    <button onclick="tutupModalSettingPin()" class="py-3 rounded-2xl bg-slate-200 text-slate-500 font-bold text-sm active:scale-95 transition hover:bg-slate-300">Batal</button>
+                </div>
+                <button onclick="simpanSettingPin()" class="w-full py-3 rounded-2xl font-bold text-sm text-white shadow-lg active:scale-95 transition" style="background:#7c3aed;" id="btn-simpan-pin">SIMPAN PIN BARU</button>
             </div>
         </div>
 
@@ -1177,7 +1261,82 @@
             setTimeout(() => { document.getElementById('modal-konfirmasi-tukar').style.display = 'none'; }, 200);
         }
 
-        async function prosesNukarPoin() {
+        function handleKonfirmasiTukar() {
+            if (pinAktif) {
+                // Tutup modal konfirmasi dulu, lalu buka modal PIN
+                tutupModalKonfirmasi();
+                setTimeout(() => bukaModalPin(), 250);
+            } else {
+                prosesNukarPoin('');
+            }
+        }
+
+        // ======= PIN TUKAR POIN =======
+        let pinBuffer = '';
+        let pinAktif = false;
+
+        async function cekStatusPin() {
+            try {
+                const res = await fetch(URL_DATABASE, { method: 'POST', headers: HEADERS_POST, redirect: 'follow', body: JSON.stringify({ action: 'get_pin_tukar' }) });
+                const r = await res.json();
+                pinAktif = r.pin_aktif === true;
+            } catch(e) { pinAktif = false; }
+        }
+
+        function updatePinDots(buffer, prefix) {
+            for (let i = 0; i < 6; i++) {
+                const el = document.getElementById(`${prefix}${i}`);
+                if (!el) continue;
+                if (i < buffer.length) {
+                    el.innerText = '●';
+                    el.classList.add('border-emerald-400', 'bg-emerald-50');
+                    el.classList.remove('border-slate-200', 'bg-slate-50');
+                } else {
+                    el.innerText = '-';
+                    el.classList.remove('border-emerald-400', 'bg-emerald-50');
+                    el.classList.add('border-slate-200', 'bg-slate-50');
+                }
+            }
+        }
+
+        function inputPinDigit(d) {
+            if (pinBuffer.length >= 6) return;
+            pinBuffer += d;
+            updatePinDots(pinBuffer, 'pd');
+            if (pinBuffer.length === 6) setTimeout(() => konfirmasiPinDanTukar(), 200);
+        }
+
+        function hapusPinDigit() {
+            if (pinBuffer.length === 0) return;
+            pinBuffer = pinBuffer.slice(0, -1);
+            updatePinDots(pinBuffer, 'pd');
+            document.getElementById('pin-error-msg').classList.add('hidden');
+        }
+
+        function tutupModalPin() {
+            pinBuffer = '';
+            updatePinDots('', 'pd');
+            document.getElementById('pin-error-msg').classList.add('hidden');
+            document.getElementById('modal-pin-content').classList.replace('scale-100', 'scale-95');
+            setTimeout(() => { document.getElementById('modal-pin-tukar').style.display = 'none'; }, 200);
+        }
+
+        function bukaModalPin() {
+            pinBuffer = '';
+            updatePinDots('', 'pd');
+            document.getElementById('pin-error-msg').classList.add('hidden');
+            const modal = document.getElementById('modal-pin-tukar');
+            modal.style.display = 'flex';
+            setTimeout(() => document.getElementById('modal-pin-content').classList.replace('scale-95', 'scale-100'), 10);
+        }
+
+        async function konfirmasiPinDanTukar() {
+            const pinMasuk = pinBuffer;
+            tutupModalPin();
+            await prosesNukarPoin(pinMasuk);
+        }
+
+        async function prosesNukarPoin(pin) {
             if (!tukarMemberData || !tukarRewardPilihan) return;
 
             const btn = document.getElementById('btn-konfirm-tukar');
@@ -1193,7 +1352,8 @@
                         action: 'tukar_poin',
                         id: tukarMemberData.id,
                         reward: tukarRewardPilihan.nama,
-                        poin: tukarRewardPilihan.poin
+                        poin: tukarRewardPilihan.poin,
+                        pin: pin || ''
                     })
                 });
                 const r = await res.json();
@@ -1201,32 +1361,118 @@
                 if (r.status === 'success') {
                     const sisaPoin = parseInt(tukarMemberData.poin) - parseInt(tukarRewardPilihan.poin);
                     tukarMemberData.poin = sisaPoin;
-
-                    // Update tampilan poin member
                     document.getElementById('tukar-poin-display').innerText = sisaPoin;
-
-                    // Tutup modal konfirmasi
                     tutupModalKonfirmasi();
-
-                    // Tampilkan modal sukses
                     document.getElementById('sukses-pesan').innerText = `"${tukarRewardPilihan.nama}" berhasil ditukar!`;
                     document.getElementById('sukses-sisa-poin').innerText = sisaPoin;
                     const modalSukses = document.getElementById('modal-sukses-tukar');
                     modalSukses.style.display = 'flex';
                     setTimeout(() => document.getElementById('modal-sukses-content').classList.replace('scale-95', 'scale-100'), 10);
-
-                    // Refresh daftar reward dengan poin baru
                     muatDaftarReward(sisaPoin);
-
-                    // Refresh cache
                     memberCacheLoaded = false;
                     loadMemberCache(true);
+                } else if (r.status === 'pin_salah') {
+                    // Tampilkan PIN modal lagi dengan pesan error
+                    btn.innerHTML = 'YA, TUKAR!';
+                    btn.disabled = false;
+                    bukaModalPin();
+                    setTimeout(() => {
+                        document.getElementById('pin-error-msg').classList.remove('hidden');
+                    }, 300);
                 } else {
                     ztPopup({type:"error",title:"Penukaran Gagal",msg:r.message||"Gagal menukar poin. Silakan coba lagi."});
+                    btn.innerHTML = 'YA, TUKAR!';
+                    btn.disabled = false;
                 }
             } catch(e) {
                 ztPopup({type:"error",title:"Koneksi Gagal",msg:"Terjadi kesalahan jaringan. Silakan coba lagi."});
+                btn.innerHTML = 'YA, TUKAR!';
+                btn.disabled = false;
             }
+        }
+
+        // ======= SETTING PIN TUKAR =======
+        let settingPinBuffer = '';
+        let settingPinStep = 1; // 1=masukkan baru, 2=konfirmasi ulang
+        let settingPinTemp = '';
+
+        function bukaModalSettingPin() {
+            settingPinBuffer = '';
+            settingPinStep = 1;
+            settingPinTemp = '';
+            updatePinDots('', 'spd');
+            document.getElementById('setting-pin-title').innerText = 'Ubah PIN Tukar';
+            document.getElementById('setting-pin-subtitle').innerText = 'Masukkan PIN baru 6 digit untuk keamanan penukaran poin';
+            document.getElementById('setting-pin-error').classList.add('hidden');
+            const modal = document.getElementById('modal-setting-pin');
+            modal.style.display = 'flex';
+            setTimeout(() => document.getElementById('modal-setting-pin-content').classList.replace('scale-95', 'scale-100'), 10);
+        }
+
+        function tutupModalSettingPin() {
+            document.getElementById('modal-setting-pin-content').classList.replace('scale-100', 'scale-95');
+            setTimeout(() => { document.getElementById('modal-setting-pin').style.display = 'none'; }, 200);
+        }
+
+        function inputSettingPinDigit(d) {
+            if (settingPinBuffer.length >= 6) return;
+            settingPinBuffer += d;
+            updatePinDots(settingPinBuffer, 'spd');
+        }
+
+        function hapusSettingPinDigit() {
+            if (settingPinBuffer.length === 0) return;
+            settingPinBuffer = settingPinBuffer.slice(0, -1);
+            updatePinDots(settingPinBuffer, 'spd');
+            document.getElementById('setting-pin-error').classList.add('hidden');
+        }
+
+        async function simpanSettingPin() {
+            if (settingPinBuffer.length !== 6) {
+                document.getElementById('setting-pin-error').innerText = 'PIN harus tepat 6 digit angka.';
+                document.getElementById('setting-pin-error').classList.remove('hidden');
+                return;
+            }
+            if (settingPinStep === 1) {
+                // Langkah 1: simpan sementara, minta konfirmasi ulang
+                settingPinTemp = settingPinBuffer;
+                settingPinBuffer = '';
+                settingPinStep = 2;
+                updatePinDots('', 'spd');
+                document.getElementById('setting-pin-title').innerText = 'Konfirmasi PIN Baru';
+                document.getElementById('setting-pin-subtitle').innerText = 'Masukkan ulang PIN baru untuk konfirmasi';
+                document.getElementById('setting-pin-error').classList.add('hidden');
+                return;
+            }
+            // Langkah 2: bandingkan
+            if (settingPinBuffer !== settingPinTemp) {
+                document.getElementById('setting-pin-error').innerText = 'PIN tidak cocok, coba lagi.';
+                document.getElementById('setting-pin-error').classList.remove('hidden');
+                settingPinBuffer = '';
+                updatePinDots('', 'spd');
+                return;
+            }
+            // Simpan ke GAS
+            const btn = document.getElementById('btn-simpan-pin');
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...';
+            btn.disabled = true;
+            try {
+                const res = await fetch(URL_DATABASE, { method: 'POST', headers: HEADERS_POST, redirect: 'follow', body: JSON.stringify({ action: 'update_settings', jenis: 'pin_tukar', pin_baru: settingPinTemp }) });
+                const r = await res.json();
+                tutupModalSettingPin();
+                if (r.status === 'success') {
+                    pinAktif = true;
+                    ztPopup({type:"success",title:"PIN Berhasil Disimpan",msg:"PIN penukaran poin berhasil diperbarui."});
+                } else {
+                    ztPopup({type:"error",title:"Gagal Simpan PIN",msg:"Terjadi kesalahan saat menyimpan PIN."});
+                }
+            } catch(e) {
+                tutupModalSettingPin();
+                ztPopup({type:"error",title:"Koneksi Gagal",msg:"Terjadi kesalahan jaringan."});
+            }
+            btn.innerHTML = 'SIMPAN PIN BARU';
+            btn.disabled = false;
+        }
 
             btn.innerHTML = 'YA, TUKAR!';
             btn.disabled = false;
@@ -1293,6 +1539,7 @@
 
                 window.addEventListener('DOMContentLoaded', () => {
             loadMemberCache();
+            cekStatusPin();
         });
 
     </script>
