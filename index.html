@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Z-TRONIK - Cek Poin Member</title>
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#064e3b">
+    <meta name="theme-color" content="#064e3b"> 
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -1672,5 +1672,19 @@
             loadMemberCache();
             cekStatusPin();
         });
+
+    </script>
+
+    <!-- CUSTOM POPUP NOTIFIKASI -->
+    <div id="zt-popup-overlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[999] hidden justify-center items-center px-5" style="display:none;">
+        <div id="zt-popup-box" class="w-full max-w-xs rounded-[2rem] p-6 text-center shadow-2xl transform scale-90 transition-all duration-300" style="background:#fff;">
+            <div id="zt-popup-icon-wrap" class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i id="zt-popup-icon" class="text-3xl"></i>
+            </div>
+            <h4 id="zt-popup-title" class="text-base font-extrabold mb-1"></h4>
+            <p id="zt-popup-msg" class="text-xs text-slate-500 leading-relaxed mb-5"></p>
+            <div id="zt-popup-btns" class="flex gap-2 justify-center"></div>
+        </div>
+    </div>
 </body>
 </html>
