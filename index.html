@@ -1686,5 +1686,23 @@
             <div id="zt-popup-btns" class="flex gap-2 justify-center"></div>
         </div>
     </div>
+    <script>
+    // Bikin "jebakan" riwayat saat aplikasi pertama kali dibuka
+    history.pushState(null, null, window.location.href);
+
+    // Deteksi kalau tombol back di HP ditekan
+    window.addEventListener('popstate', function(event) {
+        // Munculin popup konfirmasi
+        let yakinKeluar = confirm("Yakin nih mau keluar dari aplikasi Z-TRONIK?");
+        
+        if (yakinKeluar) {
+            // Kalau pilih 'OK/Ya', biarin aplikasinya keluar
+            window.history.back();
+        } else {
+            // Kalau pilih 'Cancel/Tidak', pasang jebakan riwayatnya lagi biar gak keluar
+            history.pushState(null, null, window.location.href);
+        }
+    });
+</script>
 </body>
 </html>
