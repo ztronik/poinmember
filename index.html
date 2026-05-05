@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Z-TRONIK - Cek Poin Member</title>
     <link rel="manifest" href="manifest.json">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <meta name="theme-color" content="#064e3b"> 
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -1686,5 +1687,36 @@
             <div id="zt-popup-btns" class="flex gap-2 justify-center"></div>
         </div>
     </div>
+    <script>
+    // Bikin "jebakan" riwayat saat aplikasi pertama kali dibuka
+    history.pushState(null, null, window.location.href);
+
+    // Deteksi kalau tombol back di HP ditekan
+    window.addEventListener('popstate', function(event) {
+        
+        // Memanggil popup SweetAlert2 yang bisa diwarnai
+        Swal.fire({
+            title: 'Tutup Aplikasi?',
+            text: "Anda yakin ingin keluar dari Z-TRONIK?",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#064e3b', // Ini kode warna hijau untuk tombol OK
+            cancelButtonColor: '#d33',     // Ini kode warna merah untuk tombol Batal
+            confirmButtonText: 'Ya, Keluar',
+            cancelButtonText: 'Tidak',
+            background: '#ffffff',
+            color: '#333333'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Kalau klik 'Ya, Keluar', biarkan aplikasi keluar
+                window.history.back();
+            } else {
+                // Kalau klik 'Tidak', pasang jebakan riwayatnya lagi
+                history.pushState(null, null, window.location.href);
+            }
+        });
+
+    });
+</script>
 </body>
 </html>
